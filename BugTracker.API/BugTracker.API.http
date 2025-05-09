@@ -1,0 +1,4 @@
+@BugTracker.API_HostAddress = https://localhost:7063
+
+GET {{BugTracker.API_HostAddress}}/api/bugs
+Accept: application/json

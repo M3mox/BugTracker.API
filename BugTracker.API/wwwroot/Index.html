@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bug Tracker Dashboard</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Bug Tracker Dashboard</h3>
+
+        <!-- Formular zum Erstellen eines Bugs -->
+        <form id="create-bug-form" class="mb-4">
+            <div class="form-group">
+                <label for="bug-title">Titel</label>
+                <input type="text" class="form-control" id="bug-title" required>
+            </div>
+            <div class="form-group">
+                <label for="bug-description">Beschreibung</label>
+                <textarea class="form-control" id="bug-description" rows="3" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="bug-status">Status</label>
+                <select class="form-control" id="bug-status">
+                    <option>Offen</option>
+                    <option>In Bearbeitung</option>
+                    <option>Geschlossen</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Bug erstellen</button>
+        </form>
+
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="bug-list"></tbody>
+        </table>
+    </div>
+
+
+    <script>
+        //Abrufen der Bugs von der API
+        async function fetchBugs() {
+            const response = await fetch("https://localhost:7063/api/Bugs");
+            const bugs = await response.json();
+
+            const bugList = document.getElementById("bug-list");
+            bugList.innerHTML = "";
+
+            bugs.forEach(bug => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                                <td>${bug.title}</td>
+                                <td>${bug.status}</td>
+                                <td>
+                                    <button class="btn btn-primary" onclick="editBug(${bug.id})">Edit</button>
+                                    <button class="btn btn-danger" onclick="deleteBug(${bug.id})">Delete</button>
+                                </td>
+                            `;
+                bugList.appendChild(row);
+            });
+        }
+
+        // Funktion zum Löschen
+        async function deleteBug(id) {
+            const response = await fetch(`https://localhost:7063/api/Bugs/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                fetchBugs();  // Refresh die Liste der Bugs
+            }
+        }
+
+        // Funktion zum Bearbeiten 
+        function editBug(id) {
+            // TODO: edit-function
+            alert(`Bearbeite Bug mit ID: ${id}`);
+        }
+
+        // Wenn die Seite lädt, rufe Funktion zum Abrufen der Bugs auf
+        window.onload = fetchBugs;
+
+
+        // Bug erstellen
+        const createForm = document.getElementById("create-bug-form");
+        createForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById("bug-title").value;
+            const description = document.getElementById("bug-description").value;
+            const status = document.getElementById("bug-status").value;
+
+            console.log("hallo");
+
+            const newBug = {
+                title: title,
+                description: description,
+                status: status,
+                createdAt: new Date().toISOString()
+            };
+
+            const response = await fetch("https://localhost:7063/api/Bugs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(newBug)
+            });
+
+            if (response.ok) {
+                createForm.reset();        // Formular leeren
+                fetchBugs();               // Tabelle aktualisieren
+            } else {
+                alert("Fehler beim Erstellen des Bugs.");
+            }
+        });
+    </script>
+</body>
+</html>

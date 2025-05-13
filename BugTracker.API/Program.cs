@@ -18,19 +18,19 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<BugContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-//franky edited
+
 builder.Services.AddEndpointsApiExplorer(); // <--- wichtig
 builder.Services.AddSwaggerGen();           // <--- wichtig
-//end franky edited
+
 var app = builder.Build();
 
-//franky edited
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();                        // <--- wichtig
     app.UseSwaggerUI();                     // <--- wichtig
 }
-//end franky edited
+
 // Use CORS
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -41,4 +41,12 @@ app.UseCors("AllowAll");
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<BugContext>();
+    db.Database.EnsureCreated(); // Legt DB an, wenn nicht vorhanden
+}
+ 
+
 app.Run();

@@ -43,10 +43,14 @@ public class BugsController : ControllerBase
     public async Task<IActionResult> UpdateBug(int id, Bug bug)
     {
         if (id != bug.Id) return BadRequest();
+
+        bug.UpdatedAt = DateTime.UtcNow; // updatedAt setzen
         _context.Entry(bug).State = EntityState.Modified;
         await _context.SaveChangesAsync();
+
         return NoContent();
     }
+
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBug(int id)

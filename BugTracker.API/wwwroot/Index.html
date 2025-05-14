@@ -1,58 +1,85 @@
 ﻿<!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bug Tracker Dashboard</title>
-    <link href="/wwwroot/style.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-
-
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="/css/style.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 </head>
-<body>
-    <div class="container mt-4">
-        <h3>Bug Tracker Dashboard</h3>
 
-        <!-- Hinweistext für Bearbeitungsmodus -->
-        <div id="edit-hint" class="mb-2">🔧 Bearbeitungsmodus aktiv</div>
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-4xl mx-auto p-6 mt-8 bg-white rounded shadow">
+        <h1 class="text-2xl font-bold mb-4">
+            🐞 Bug Tracker Dashboard
+            <span id="admin-badge" class="admin-badge hidden">Admin</span>
+        </h1>
 
-        <!-- Formular zum Erstellen oder Bearbeiten eines Bugs -->
-        <form id="create-bug-form" class="mb-4">
-            <div class="form-group">
-                <label for="bug-title">Titel</label>
-                <input type="text" class="form-control" id="bug-title" required>
+        <div class="mb-4">
+            <button id="logout-button" class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
+                Logout
+            </button>
+        </div>
+
+        <!-- Bug-Erstellungsformular -->
+        <form id="create-bug-form" class="space-y-4 mb-6">
+            <input type="text" id="bug-title" placeholder="Title" required class="w-full p-2 border rounded" />
+            <textarea id="bug-description" placeholder="Description" required class="w-full p-2 border rounded"></textarea>
+            <select id="bug-status" required class="w-full p-2 border rounded">
+                <option value="">Select Status</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+            </select>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                    Create Ticket
+                </button>
+                <button type="button" id="cancel-edit-btn" class="bg-gray-400 text-white px-4 py-2 rounded hidden">
+                    Cancel Edit
+                </button>
             </div>
-            <div class="form-group">
-                <label for="bug-description">Beschreibung</label>
-                <textarea class="form-control" id="bug-description" rows="3" required></textarea>
+            <div id="edit-hint" class="text-blue-600 font-medium hidden">
+                🛠️ Editing mode is active. Make changes and submit to update.
             </div>
-            <div class="form-group">
-                <label for="bug-status">Status</label>
-                <select class="form-control" id="bug-status">
-                    <option>Offen</option>
-                    <option>In Bearbeitung</option>
-                    <option>Geschlossen</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-success">Bug erstellen</button>
-            <button type="button" id="cancel-edit-btn" class="btn btn-secondary ml-2" style="display: none;">Abbrechen</button>
         </form>
 
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Created at</th>
-                    <th>Updated at</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="bug-list"></tbody>
-        </table>
+        <!-- Bugliste -->
+        <div class="overflow-x-auto">
+            <table class="w-full table-auto border border-gray-300">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="px-4 py-2 border">Title</th>
+                        <th class="px-4 py-2 border">Status</th>
+                        <th class="px-4 py-2 border">Created at</th>
+                        <th class="px-4 py-2 border">Updated at</th>
+                        <!-- Diese Spalte wird per CSS sichtbar gemacht, wenn body.admin-mode vorhanden ist -->
+                        <th class="px-4 py-2 border actions-column">Actions</th>
+                    </tr>
+                </thead>
+                <!-- Die Klasse "actions-column" wird in CSS verwendet, um gezielt zu steuern -->
+                <tbody id="bug-list" class="bg-white divide-y divide-gray-100 actions-column"></tbody>
+            </table>
+        </div>
     </div>
 
-    <script src="script.js" ></script>
+    <!-- Bug Details Modal -->
+    <div id="bug-detail-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white p-6 rounded-lg max-w-md w-full">
+            <h2 class="text-xl font-bold mb-4" id="bug-detail-title"></h2>
+            <p id="bug-detail-description" class="text-gray-700"></p>
+            <button id="close-modal-btn" class="mt-4 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
 </body>
 </html>

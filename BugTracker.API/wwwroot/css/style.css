@@ -1,5 +1,4 @@
-﻿@import "tailwindcss";
-
+﻿
 .edit-mode {
     border: 2px solid #ffc107;
     padding: 15px;
@@ -12,3 +11,4 @@
     font-weight: bold;
     color: #856404;
 }
+

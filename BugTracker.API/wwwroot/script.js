@@ -1,113 +1,212 @@
-﻿<script>
+﻿document.addEventListener("DOMContentLoaded", function () {
     const createForm = document.getElementById("create-bug-form");
     let currentlyEditingId = null;
 
-    // Abrufen der Bugs von der API
-    async function fetchBugs() {
-            const response = await fetch("https://localhost:7063/api/Bugs");
-    const bugs = await response.json();
+    const token = localStorage.getItem("token");
+    let userRole = null;
+    let username = null;
 
-    const bugList = document.getElementById("bug-list");
-    bugList.innerHTML = "";
+    if (token) {
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1])); // Dekodieren des Tokens
+            userRole = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+            username = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
 
-            bugs.forEach(bug => {
-                const createdAtFormatted = new Date(bug.createdAt).toLocaleString("de-DE");
-    const updatedAtFormatted = bug.updatedAt
-    ? new Date(bug.updatedAt).toLocaleString("de-DE")
-    : "-";
+            if (userRole === "admin") {
+                console.log("Admin recognized, class is set");
+                document.body.classList.add("admin-mode");
+                document.getElementById("admin-badge").classList.remove("hidden");
+            }
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
-    <td>${bug.title}</td>
-    <td>${bug.status}</td>
-    <td>${createdAtFormatted}</td>
-    <td>${updatedAtFormatted}</td>
-    <td>
-        <button class="btn btn-primary" onclick="editBug(${bug.id})">Edit</button>
-        <button class="btn btn-danger" onclick="deleteBug(${bug.id})">Delete</button>
-    </td>
-    `;
-    bugList.appendChild(row);
+        } catch (err) {
+            console.error("Token decoding failed:", err);
+            redirectToLogin("Invalid token. Please log in again.");
+        }
+    } else {
+        redirectToLogin("Not logged in. Please try again.");
+    }
+
+    document.getElementById("logout-button").addEventListener("click", () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "login.html";
+    });
+
+    document.getElementById("close-modal-btn").addEventListener("click", function () {
+        document.getElementById("bug-detail-modal").classList.add("hidden");
+    });
+
+    createForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const title = document.getElementById("bug-title").value;
+        const description = document.getElementById("bug-description").value;
+        const status = document.getElementById("bug-status").value;
+
+        const bugData = {
+            id: currentlyEditingId ?? 0,
+            title,
+            description,
+            status,
+            createdAt: new Date().toISOString(),
+            createdBy: username
+        };
+
+        const url = currentlyEditingId
+            ? `https://localhost:7063/api/Bugs/${currentlyEditingId}`
+            : "https://localhost:7063/api/Bugs";
+
+        const method = currentlyEditingId ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+            method,
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(bugData)
+        });
+
+        if (response.ok) {
+            const isUpdate = currentlyEditingId !== null;
+
+            createForm.reset();
+            fetchBugs();
+            currentlyEditingId = null;
+
+            document.querySelector("#create-bug-form button[type='submit']").textContent = "Create Ticket";
+            document.getElementById("cancel-edit-btn").classList.add("hidden");
+            document.getElementById("edit-hint").style.display = "none";
+            document.getElementById("create-bug-form").classList.remove("edit-mode");
+
+            Swal.fire({
+                title: isUpdate ? "Ticket updated!" : "Ticket created!",
+                icon: "success",
+                timer: 1100,
+                showConfirmButton: false
             });
         }
+    });
 
+    document.getElementById("cancel-edit-btn").addEventListener("click", () => {
+        createForm.reset();
+        currentlyEditingId = null;
+        document.querySelector("#create-bug-form button[type='submit']").textContent = "Create Ticket";
+        document.getElementById("cancel-edit-btn").classList.add("hidden");
+        document.getElementById("edit-hint").style.display = "none";
+        document.getElementById("create-bug-form").classList.remove("edit-mode");
+    });
 
-    // Bug löschen
-    async function deleteBug(id) {
-            const response = await fetch(`https://localhost:7063/api/Bugs/${id}`, {method: 'DELETE' });
-    if (response.ok) {
-        fetchBugs();
+    fetchBugs();
+
+    async function fetchBugs() {
+        const response = await fetch("https://localhost:7063/api/Bugs", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        const bugs = await response.json();
+        const bugList = document.getElementById("bug-list");
+        bugList.innerHTML = "";
+
+        bugs.forEach(bug => {
+            const createdAtFormatted = new Date(bug.createdAt).toLocaleString("de-DE");
+            const updatedAtFormatted = bug.updatedAt ? new Date(bug.updatedAt).toLocaleString("de-DE") : "-";
+
+            const row = document.createElement("tr");
+            row.classList.add("hover:bg-gray-50");
+
+            let actionButtons = "";
+            if (userRole === "admin" || bug.createdBy === username) {
+                actionButtons += `<button onclick="editBug(event, ${bug.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Edit</button>`;
+            }
+            if (userRole === "admin") {
+                actionButtons += `<button onclick="deleteBug(event, ${bug.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">Delete</button>`;
+            }
+
+            row.addEventListener("click", () => showBugDetails(bug));
+            row.innerHTML = `
+                <td class="px-4 py-2 border">${bug.title}</td>
+                <td class="px-4 py-2 border">${bug.status}</td>
+                <td class="px-4 py-2 border">${createdAtFormatted}</td>
+                <td class="px-4 py-2 border">${updatedAtFormatted}</td>
+                <td class="px-4 py-2 border space-x-2">${actionButtons}</td>
+            `;
+
+            bugList.appendChild(row);
+        });
+    }
+
+    function showBugDetails(bug) {
+        document.getElementById("bug-detail-title").innerText = bug.title;
+        document.getElementById("bug-detail-description").innerText = bug.description;
+        document.getElementById("bug-detail-modal").classList.remove("hidden");
+    }
+
+    async function deleteBug(event, id) {
+        event.stopPropagation();
+
+        const result = await Swal.fire({
+            title: "Are you sure?",
+            text: "This Ticket will be deleted permanently!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Yes, I confirm!",
+            cancelButtonText: "Cancel"
+        });
+
+        if (result.isConfirmed) {
+            const response = await fetch(`https://localhost:7063/api/Bugs/${id}`, {
+                method: 'DELETE',
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                await fetchBugs();
+                Swal.fire("Deleted!", "The Ticket was deleted successfully.", "success");
+            } else {
+                Swal.fire("Error", "The Ticket could not be deleted.", "error");
             }
         }
+    }
 
-    // Bug bearbeiten
-    function editBug(id) {
-        fetch(`https://localhost:7063/api/Bugs/${id}`)
+    window.editBug = function (event, id) {
+        event.stopPropagation();
+
+        fetch(`https://localhost:7063/api/Bugs/${id}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        })
             .then(response => response.json())
             .then(bug => {
+                if (userRole !== "admin" && bug.createdBy !== username) {
+                    return Swal.fire("Access denied", "You are not allowed to edit this ticket.", "error");
+                }
+
                 document.getElementById("bug-title").value = bug.title;
                 document.getElementById("bug-description").value = bug.description;
                 document.getElementById("bug-status").value = bug.status;
                 currentlyEditingId = bug.id;
 
-                document.querySelector("#create-bug-form button[type='submit']").textContent = "Bug aktualisieren";
-                document.getElementById("cancel-edit-btn").style.display = "inline-block";
-                document.getElementById("create-bug-form").classList.add("edit-mode");
+                document.querySelector("#create-bug-form button[type='submit']").textContent = "Update";
+                document.getElementById("cancel-edit-btn").classList.remove("hidden");
+                document.getElementById("edit-hint").innerText = "🛠️ Edit-mode is activated.";
                 document.getElementById("edit-hint").style.display = "block";
+                document.getElementById("create-bug-form").classList.add("edit-mode");
             });
-        }
+    };
+});
 
-    // Bug erstellen oder aktualisieren
-    createForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
+function redirectToLogin(message) {
+    Swal.fire({
+        title: "Access denied",
+        text: message,
+        icon: "warning",
+        showConfirmButton: false,
+        timer: 1800
+    });
 
-    const title = document.getElementById("bug-title").value;
-    const description = document.getElementById("bug-description").value;
-    const status = document.getElementById("bug-status").value;
-
-    const bugData = {
-        id: currentlyEditingId ?? 0,
-    title: title,
-    description: description,
-    status: status,
-    createdAt: new Date().toISOString()
-            };
-
-    const url = currentlyEditingId
-    ? `https://localhost:7063/api/Bugs/${currentlyEditingId}`
-    : "https://localhost:7063/api/Bugs";
-
-    const method = currentlyEditingId ? "PUT" : "POST";
-
-    const response = await fetch(url, {
-        method: method,
-    headers: {"Content-Type": "application/json" },
-    body: JSON.stringify(bugData)
-            });
-
-    if (response.ok) {
-        createForm.reset();
-    fetchBugs();
-    currentlyEditingId = null;
-    document.querySelector("#create-bug-form button[type='submit']").textContent = "Bug erstellen";
-    document.getElementById("cancel-edit-btn").style.display = "none";
-    document.getElementById("create-bug-form").classList.remove("edit-mode");
-    document.getElementById("edit-hint").style.display = "none";
-            } else {
-        alert("Fehler beim Speichern des Bugs.");
-            }
-        });
-
-        // Bearbeiten abbrechen
-        document.getElementById("cancel-edit-btn").addEventListener("click", () => {
-        createForm.reset();
-    currentlyEditingId = null;
-    document.querySelector("#create-bug-form button[type='submit']").textContent = "Bug erstellen";
-    document.getElementById("cancel-edit-btn").style.display = "none";
-    document.getElementById("create-bug-form").classList.remove("edit-mode");
-    document.getElementById("edit-hint").style.display = "none";
-        });
-
-    // Beim Laden Bugs abrufen
-    window.onload = fetchBugs;
-</script>
+    setTimeout(() => {
+        window.location.href = "login.html";
+    }, 1800);
+}

@@ -1,7 +1,7 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
     const createForm = document.getElementById("create-bug-form");
     const assignedUserSelect = document.getElementById("assigned-user");
-    const assignedUserGroup = document.getElementById("assigned-user-group"); // z.B. ein <div> oder <label> drum herum
+    
     let currentlyEditingId = null;
 
     const token = localStorage.getItem("token");
@@ -17,9 +17,6 @@
             if (userRole === "admin") {
                 document.body.classList.add("admin-mode");
                 document.getElementById("admin-badge").classList.remove("hidden");
-                assignedUserGroup.classList.remove("hidden"); // Nur Admins sehen die Auswahl
-            } else {
-                assignedUserGroup.classList.add("hidden");
             }
         } catch (err) {
             console.error("Token decoding failed:", err);
@@ -62,12 +59,6 @@
         if (assignedTo) {
             bugData.assignedTo = assignedTo;
         }
-
-        // Nur wenn neu und nicht admin, dann selbst als Ersteller setzen
-        if (!currentlyEditingId && userRole !== "admin") {
-            bugData.createdBy = username;
-        }
-
 
         const url = currentlyEditingId
             ? `https://localhost:7063/api/Bugs/${currentlyEditingId}`
@@ -118,16 +109,38 @@
         const res = await fetch("https://localhost:7063/api/Users", {
             headers: { "Authorization": `Bearer ${token}` }
         });
+
+        if (!res.ok) {
+            const errorText = await res.text(); // liest leere oder Fehlermeldung
+            console.error(`Error fetching users: ${res.status}`, errorText);
+            return;
+        }
+
         const users = await res.json();
 
         assignedUserSelect.innerHTML = '<option value="">Assign to...</option>';
+
+        const usernames = users.map(user => user.username || user.email || user.name);
+
+        if (!usernames.includes(username)) {
+            const selfOption = document.createElement("option");
+            selfOption.value = username;
+            selfOption.textContent = `${username} (You)`;
+            assignedUserSelect.appendChild(selfOption);
+        }
+
         users.forEach(user => {
+            const displayName = user.username || user.email || user.name;
             const opt = document.createElement("option");
-            opt.value = user.username || user.email || user.name;
-            opt.textContent = user.username || user.email || user.name;
+            opt.value = displayName;
+            opt.textContent = displayName === username ? `${displayName} (You)` : displayName;
             assignedUserSelect.appendChild(opt);
         });
+
+        console.log("Fetched users for assignment:", users);
     }
+
+
 
     async function fetchBugs() {
         const response = await fetch("https://localhost:7063/api/Bugs", {
@@ -173,7 +186,7 @@
         document.getElementById("bug-detail-modal").classList.remove("hidden");
     }
 
-    async function deleteBug(event, id) {
+    window.deleteBug = async function (event, id) {
         event.stopPropagation();
 
         const result = await Swal.fire({
@@ -200,7 +213,8 @@
                 Swal.fire("Error", "The Ticket could not be deleted.", "error");
             }
         }
-    }
+    };
+
 
     window.editBug = async function (event, id) {
         event.stopPropagation();

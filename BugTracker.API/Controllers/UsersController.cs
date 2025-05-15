@@ -1,26 +1,25 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
-[Route("api/[controller]")]
-[ApiController]
-public class UsersController : ControllerBase
+namespace BugTracker.Api.Controllers
 {
-    private readonly UserManager<IdentityUser> _userManager;
-
-    public UsersController(UserManager<IdentityUser> userManager)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class UsersController : ControllerBase
     {
-        _userManager = userManager;
-    }
-
-    [HttpGet]
-    public IActionResult GetUsers()
-    {
-        var users = _userManager.Users.Select(u => new
+        // Hardcoded Users
+        private readonly List<object> _users = new()
         {
-            u.UserName
-        });
+            new { Username = "admin" },
+            new { Username = "employee" }
+        };
 
-        return Ok(users);
+        // Autorisierung auf "admin"-Rolle prüfen
+        [HttpGet]
+        [Authorize(Roles = "admin")]
+        public IActionResult GetUsers()
+        {
+            return Ok(_users);
+        }
     }
 }

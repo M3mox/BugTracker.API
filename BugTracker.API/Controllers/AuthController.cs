@@ -1,97 +1,86 @@
-﻿using BugTracker.Api.Data;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// --- JWT-Konfig auslesen ---
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-
-if (string.IsNullOrEmpty(jwtKey))
-    throw new InvalidOperationException("JWT Key is missing. Set it in environment variables or user secrets.");
-
-// --- Services konfigurieren ---
-builder.Services.AddCors(options =>
+namespace BugTracker.Api.Controllers
 {
-    options.AddPolicy("AllowAll", policy =>
+    [Route("api/auth")]
+    [ApiController]
+    public class AuthController : ControllerBase
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
+        private readonly IConfiguration _configuration;
 
-builder.Services.AddControllers();
-
-builder.Services.AddDbContext<BugContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Identity hinzufügen
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
-    .AddEntityFrameworkStores<BugContext>()
-    .AddDefaultTokenProviders();
-
-// JWT Auth
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
-
-        if (keyBytes.Length < 32)
+        public AuthController(IConfiguration configuration)
         {
-            var extended = new byte[32];
-            Array.Copy(keyBytes, extended, keyBytes.Length);
-            keyBytes = extended;
+            _configuration = configuration;
         }
 
-        var key = new SymmetricSecurityKey(keyBytes);
-
-        options.TokenValidationParameters = new TokenValidationParameters
+        [HttpPost("login")]
+        public IActionResult Login([FromBody] LoginModel login)
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = key
-        };
-    });
+            // Beispiel-User
+            var users = new List<UserModel>
+            {
+                new UserModel { Username = "admin", Password = "admin123", Role = "admin" },
+                new UserModel { Username = "employee", Password = "user123", Role = "employee" }
+            };
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+            var user = users.FirstOrDefault(u =>
+                u.Username == login.Username && u.Password == login.Password);
 
-var app = builder.Build();
+            if (user == null)
+                return Unauthorized("Invalid credentials");
 
-// --- Middleware ---
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+            // Claims für JWT
+            var claims = new[]
+            {
+                new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", user.Username),
+                new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", user.Role)
+            };
+
+
+            // JWT Key vorbereiten + Länge überprüfen
+            var keyBytes = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
+            if (keyBytes.Length < 32)
+            {
+                var extended = new byte[32];
+                Array.Copy(keyBytes, extended, keyBytes.Length);
+                keyBytes = extended;
+            }
+
+            var key = new SymmetricSecurityKey(keyBytes);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                //expires: DateTime.UtcNow.AddHours(1),
+                signingCredentials: creds
+            );
+
+            return Ok(new
+            {
+                token = new JwtSecurityTokenHandler().WriteToken(token),
+                username = user.Username,
+                role = user.Role
+            });
+        }
+    }
+
+    public class LoginModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
+
+    // Beispiel-Nutzer
+    public class UserModel
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string Role { get; set; }
+    }
 }
-
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
-app.UseRouting();
-
-app.UseCors("AllowAll");
-
-app.UseAuthentication(); // <<< Wichtig: Vor Authorization
-app.UseAuthorization();
-
-app.MapControllers();
-
-// --- DB sicherstellen ---
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<BugContext>();
-    db.Database.EnsureCreated();
-}
-
-app.Run();

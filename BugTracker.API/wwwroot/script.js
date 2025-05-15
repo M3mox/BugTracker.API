@@ -63,6 +63,12 @@
             bugData.assignedTo = assignedTo;
         }
 
+        // Nur wenn neu und nicht admin, dann selbst als Ersteller setzen
+        if (!currentlyEditingId && userRole !== "admin") {
+            bugData.createdBy = username;
+        }
+
+
         const url = currentlyEditingId
             ? `https://localhost:7063/api/Bugs/${currentlyEditingId}`
             : "https://localhost:7063/api/Bugs";

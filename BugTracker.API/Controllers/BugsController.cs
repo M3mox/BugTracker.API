@@ -2,6 +2,7 @@
 using BugTracker.Api.Data;
 using BugTracker.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BugTracker.Api.Controllers;
 
@@ -40,6 +41,7 @@ public class BugsController : ControllerBase
 
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> UpdateBug(int id, Bug bug)
     {
         if (id != bug.Id) return BadRequest();
@@ -53,6 +55,7 @@ public class BugsController : ControllerBase
 
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> DeleteBug(int id)
     {
         var bug = await _context.Bugs.FindAsync(id);

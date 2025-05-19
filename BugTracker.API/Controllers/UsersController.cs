@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using BugTracker.API.Service;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BugTracker.API.DTO;
 
 namespace BugTracker.Api.Controllers
 {
@@ -7,19 +9,15 @@ namespace BugTracker.Api.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        // Hardcoded Users
-        private readonly List<object> _users = new()
-        {
-            new { Username = "admin" },
-            new { Username = "employee" }
-        };
+        private readonly UserService userService = new UserService();
 
         // Autorisierung auf "admin"-Rolle prüfen
         [HttpGet]
         [Authorize(Roles = "admin")]
         public IActionResult GetUsers()
         {
-            return Ok(_users);
+            var users = userService.GetUsers().Select(u => new UserDTO { Username = u.Username, Role = u.Role });
+            return Ok(users);
         }
     }
 }

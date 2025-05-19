@@ -11,8 +11,8 @@
     if (token) {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
-            userRole = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-            username = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
+            userRole = payload["role"];
+            username = payload["unique_name"];
 
             if (userRole === "admin") {
                 document.body.classList.add("admin-mode");
@@ -120,7 +120,7 @@
 
         assignedUserSelect.innerHTML = '<option value="">Assign to...</option>';
 
-        const usernames = users.map(user => user.username || user.email || user.name);
+        const usernames = users.map(user => user.username || user.name);
 
         if (!usernames.includes(username)) {
             const selfOption = document.createElement("option");
@@ -130,7 +130,7 @@
         }
 
         users.forEach(user => {
-            const displayName = user.username || user.email || user.name;
+            const displayName = user.username || user.name;
             const opt = document.createElement("option");
             opt.value = displayName;
             opt.textContent = displayName === username ? `${displayName} (You)` : displayName;

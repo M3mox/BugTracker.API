@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using BugTracker.API.Service;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -11,6 +12,7 @@ namespace BugTracker.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
+        private readonly UserService userService = new UserService();
 
         public AuthController(IConfiguration configuration)
         {
@@ -20,15 +22,7 @@ namespace BugTracker.Api.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginModel login)
         {
-            // Beispiel-User
-            var users = new List<UserModel>
-            {
-                new UserModel { Username = "admin", Password = "admin123", Role = "admin" },
-                new UserModel { Username = "employee", Password = "user123", Role = "employee" }
-            };
-
-            var user = users.FirstOrDefault(u =>
-                u.Username == login.Username && u.Password == login.Password);
+            var user = userService.GetUser(login.Username, login.Password);
 
             if (user == null)
                 return Unauthorized("Invalid credentials");
@@ -36,8 +30,8 @@ namespace BugTracker.Api.Controllers
             // Claims für JWT
             var claims = new[]
             {
-                new Claim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name", user.Username),
-                new Claim("http://schemas.microsoft.com/ws/2008/06/identity/claims/role", user.Role)
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
 
@@ -53,17 +47,28 @@ namespace BugTracker.Api.Controllers
             var key = new SymmetricSecurityKey(keyBytes);
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                //expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: creds
-            );
+            //var token = new JwtSecurityToken(
+            //    issuer: _configuration["Jwt:Issuer"],
+            //    audience: _configuration["Jwt:Audience"],
+            //    claims: claims,
+            //    //expires: DateTime.UtcNow.AddHours(1),
+            //    signingCredentials: creds
+            //);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"],
+                SigningCredentials = creds,
+                Subject = new ClaimsIdentity(claims)
+            };
+
+            var securityHandler = new JwtSecurityTokenHandler();
+            var token = securityHandler.CreateToken(tokenDescriptor);
 
             return Ok(new
             {
-                token = new JwtSecurityTokenHandler().WriteToken(token),
+                token = securityHandler.WriteToken(token),
                 username = user.Username,
                 role = user.Role
             });
@@ -76,11 +81,4 @@ namespace BugTracker.Api.Controllers
         public string Password { get; set; }
     }
 
-    // Beispiel-Nutzer
-    public class UserModel
-    {
-        public string Username { get; set; }
-        public string Password { get; set; }
-        public string Role { get; set; }
-    }
 }

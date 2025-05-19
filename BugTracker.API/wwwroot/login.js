@@ -21,8 +21,8 @@
         localStorage.setItem("token", token);
 
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-        const name = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
+        const role = payload["role"];
+        const name = payload["unique_name"];
 
         localStorage.setItem("loggedInUser", JSON.stringify({ username: name, role }));
 

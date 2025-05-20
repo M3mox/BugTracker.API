@@ -1,18 +1,22 @@
 ﻿using BugTracker.API.Models;
+using BugTracker.Api.Controllers;
+using BugTracker.API.DTO;
+using BugTracker.Api.Data;
 
 namespace BugTracker.API.Service
 {
     public class UserService
     {
+        private readonly BugContext _context;
+
+        public UserService (BugContext context)
+        {
+            _context = context;
+        }
         public List<User> GetUsers()
         {
-            // Beispiel-User
-            var users = new List<User>
-            {
-                new User { Username = "admin", Password = "admin123", Role = "admin" },
-                new User { Username = "employee", Password = "user123", Role = "employee" }
-            };
-            return users;
+            return _context.User.ToList(); 
+            
         }
 
         public User GetUser(string userName, string password)
@@ -21,5 +25,16 @@ namespace BugTracker.API.Service
                 u.Username == userName && u.Password == password);
             return user;
         }
+
+        public User GetById(string assignedToID)
+        {
+            var user = GetUsers().FirstOrDefault(u => u.Id == assignedToID);
+
+            if (user == null)
+                throw new InvalidOperationException("User not found.");
+
+            return user;
+        }
+
     }
 }

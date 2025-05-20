@@ -1,7 +1,7 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
     const createForm = document.getElementById("create-bug-form");
     const assignedUserSelect = document.getElementById("assigned-user");
-    
+
     let currentlyEditingId = null;
 
     const token = localStorage.getItem("token");
@@ -43,21 +43,23 @@
         const description = document.getElementById("bug-description").value;
         const status = document.getElementById("bug-status").value;
 
-        // Nur Admins dürfen assignedTo setzen
+
+        // alle user dürfen assignedTo setzen
         let assignedTo = null;
-        if (userRole === "admin") {
-            assignedTo = assignedUserSelect.value || null;
-        }
+
+        assignedTo = assignedUserSelect.value || null;
+
 
         const bugData = {
             id: currentlyEditingId ?? 0,
             title,
             description,
             status
+
         };
 
         if (assignedTo) {
-            bugData.assignedTo = assignedTo;
+            bugData.assignedToID = assignedTo;
         }
 
         const url = currentlyEditingId
@@ -104,7 +106,8 @@
     });
 
     async function fetchUsers() {
-        if (userRole !== "admin") return;
+        if (!assignedUserSelect) return; // Sicherheits-Check statt Rollensperre
+
 
         const res = await fetch("https://localhost:7063/api/Users", {
             headers: { "Authorization": `Bearer ${token}` }
@@ -132,7 +135,7 @@
         users.forEach(user => {
             const displayName = user.username || user.name;
             const opt = document.createElement("option");
-            opt.value = displayName;
+            opt.value = user.id;
             opt.textContent = displayName === username ? `${displayName} (You)` : displayName;
             assignedUserSelect.appendChild(opt);
         });
@@ -172,7 +175,7 @@
                 <td class="px-6 py-4 border-b text-sm text-gray-700">${bug.status}</td>
                 <td class="px-6 py-4 border-b text-sm text-gray-700">${createdAtFormatted}</td>
                 <td class="px-6 py-4 border-b text-sm text-gray-700">${updatedAtFormatted}</td>
-                <td class="px-6 py-4 border-b text-sm text-gray-700">${bug.assignedTo || "-"}</td>
+                <td class="px-6 py-4 border-b text-sm text-gray-700">${bug.assignedTo?.username || "-"}</td>
                 <td class="px-6 py-4 border-b whitespace-nowrap text-sm text-right space-x-2">${actionButtons}</td>
             `;
 
@@ -232,6 +235,7 @@
         document.getElementById("bug-title").value = bug.title;
         document.getElementById("bug-description").value = bug.description;
         document.getElementById("bug-status").value = bug.status;
+
 
         if (userRole === "admin") {
             assignedUserSelect.value = bug.assignedTo || "";

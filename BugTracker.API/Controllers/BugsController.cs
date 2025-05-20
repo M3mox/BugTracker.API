@@ -1,8 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using BugTracker.Api.Data;
 using BugTracker.Api.Models;
+using BugTracker.API.DTO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
+using BugTracker.API.Service;
+using System.Security.Claims;
+using System.Reflection.Metadata.Ecma335;
 
 namespace BugTracker.Api.Controllers;
 
@@ -11,28 +15,54 @@ namespace BugTracker.Api.Controllers;
 public class BugsController : ControllerBase
 {
     private readonly BugContext _context;
-    public BugsController(BugContext context) => _context = context;
+    private readonly UserService _userService;
+    public BugsController(BugContext context, UserService userService)
+    {
+        _context = context;
+        _userService = userService;
+    }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Bug>>> GetBugs() =>
-        await _context.Bugs.ToListAsync();
+    public async Task<ActionResult<IEnumerable<Bug>>> GetBugs()
+    {
+        var bugs = await _context.Bugs.Include(b => b.AssignedTo).ToListAsync();
+
+        return bugs;
+    }
+
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Bug>> GetBug(int id)
     {
-        var bug = await _context.Bugs.FindAsync(id);
+        var bug = await _context.Bugs.Include(b => b.AssignedTo).FirstOrDefaultAsync(b => b.Id == id);
         return bug == null ? NotFound() : bug;
     }
 
     [HttpPost]
-    public async Task<ActionResult<Bug>> CreateBug([FromBody] Bug bug)
+    [Authorize]
+    public async Task<ActionResult<Bug>> CreateBug([FromBody] CreateBugDTO bugDTO)
+
     {
-        Console.WriteLine($"Eingehender Bug: {bug.Title}");
+        Console.WriteLine($"Incoming bug: {bugDTO.Title}");
 
-        if (string.IsNullOrWhiteSpace(bug.Title))
-            return BadRequest("Titel fehlt");
+        if (string.IsNullOrWhiteSpace(bugDTO.Title))
+            return BadRequest("Title is missing");
 
-        bug.CreatedAt = DateTime.Now;
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+
+        var bug = new Bug
+        {
+            Title = bugDTO.Title,
+            Description = bugDTO.Description,
+            Status = bugDTO.Status,
+            CreatedAt = DateTime.Now,
+            UpdatedAt = null,
+            CreatedBy = _userService.GetById(userId),
+            AssignedTo = string.IsNullOrEmpty(bugDTO.AssignedToID)? null : _userService.GetById(bugDTO.AssignedToID)
+        };
+
+
         _context.Bugs.Add(bug);
         await _context.SaveChangesAsync();
 
@@ -42,11 +72,19 @@ public class BugsController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> UpdateBug(int id, Bug bug)
+    public async Task<IActionResult> UpdateBug(int id, CreateBugDTO bugDTO)
     {
-        if (id != bug.Id) return BadRequest();
+        var bug = await _context.Bugs.FindAsync(id);
 
-        bug.UpdatedAt = DateTime.UtcNow; // updatedAt setzen
+        // update fields from dto
+        bug.Title = bugDTO.Title;
+        bug.Description = bugDTO.Description;
+        bug.Status = bugDTO.Status;   // updatedAt setzen
+        bug.UpdatedAt = DateTime.Now;
+        bug.AssignedTo = _userService.GetById(bugDTO.AssignedToID);
+
+
+        // Save
         _context.Entry(bug).State = EntityState.Modified;
         await _context.SaveChangesAsync();
 

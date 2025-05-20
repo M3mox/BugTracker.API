@@ -12,17 +12,18 @@ namespace BugTracker.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
-        private readonly UserService userService = new UserService();
+        private readonly UserService _userService;
 
-        public AuthController(IConfiguration configuration)
+        public AuthController(IConfiguration configuration, UserService userService)
         {
             _configuration = configuration;
+            _userService = userService;
         }
 
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginModel login)
         {
-            var user = userService.GetUser(login.Username, login.Password);
+            var user = _userService.GetUser(login.Username, login.Password);
 
             if (user == null)
                 return Unauthorized("Invalid credentials");
@@ -30,6 +31,7 @@ namespace BugTracker.Api.Controllers
             // Claims für JWT
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, user.Role)
             };

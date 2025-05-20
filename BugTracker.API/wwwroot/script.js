@@ -228,6 +228,9 @@
 
         const bug = await response.json();
 
+        // Debugging zum Verständnis des API-Responses
+        console.log("Bug data from API:", bug);
+
         if (userRole !== "admin" && bug.createdBy !== username) {
             return Swal.fire("Access denied", "You are not allowed to edit this ticket.", "error");
         }
@@ -236,9 +239,24 @@
         document.getElementById("bug-description").value = bug.description;
         document.getElementById("bug-status").value = bug.status;
 
+        
+        if (assignedUserSelect) {
+            // Prüfen, ob ein Benutzer zugewiesen ist und in welchem Format die Daten sind
+            if (bug.assignedToID) {
+                // Fall 1: API gibt assignedToID direkt zurück
+                assignedUserSelect.value = bug.assignedToID;
+            } else if (bug.assignedTo && typeof bug.assignedTo === 'object' && bug.assignedTo.id) {
+                // Fall 2: API gibt ein assignedTo-Objekt mit einer ID zurück
+                assignedUserSelect.value = bug.assignedTo.id;
+            } else if (bug.assignedTo && typeof bug.assignedTo === 'string') {
+                // Fall 3: API gibt ein assignedTo als String zurück (evtl. ist es die ID)
+                assignedUserSelect.value = bug.assignedTo;
+            } else {
+                // Kein Benutzer zugewiesen oder unbekanntes Format
+                assignedUserSelect.value = "";
+            }
 
-        if (userRole === "admin") {
-            assignedUserSelect.value = bug.assignedTo || "";
+            console.log("Setting assignedUserSelect value to:", assignedUserSelect.value);
         }
 
         currentlyEditingId = bug.id;

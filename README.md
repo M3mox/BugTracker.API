@@ -1,6 +1,8 @@
 🐞 Bug Tracker
+
 A modern, lightweight bug tracking application built with HTML, JavaScript, and a .NET API backend.
 Bild anzeigen
+
 📋 Features
 
 User Authentication: Secure login and registration system

@@ -35,7 +35,7 @@ namespace BugTracker.API.Service
             // Passwort überprüfen
             var passwordVerificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, password);
 
-            // Wenn das Passwort übereinstimmt, geben wir den Benutzer zurück
+            // Wenn das Passwort übereinstimmt, gib den Benutzer zurück
             if (passwordVerificationResult == PasswordVerificationResult.Success)
                 return user;
 
@@ -59,7 +59,7 @@ namespace BugTracker.API.Service
                 Id = Guid.NewGuid().ToString(),
                 Username = username,
                 Role = role,
-                // Das Passwort bleibt leer, wird direkt nach der Erstellung gehasht
+                // Passwort bleibt leer, wird direkt nach der Erstellung gehasht
                 Password = ""
             };
 
@@ -73,7 +73,7 @@ namespace BugTracker.API.Service
             return newUser;
         }
 
-        // Methode zum Aktualisieren eines Passworts
+        // Aktualisieren eines Passworts
         public bool UpdatePassword(string userId, string newPassword)
         {
             var user = GetById(userId);
@@ -93,8 +93,7 @@ namespace BugTracker.API.Service
             var users = GetUsers();
             foreach (var user in users)
             {
-                // Nur migrieren, wenn das Passwort noch nicht gehasht ist
-                // (Dies ist eine vereinfachte Erkennung und könnte in der Praxis verbessert werden)
+                // Nur migrieren, wenn das Passwort noch nicht gehasht ist                
                 if (!user.Password.StartsWith("AQAAAA"))
                 {
                     var plainPassword = user.Password; // Originalpasswort merken

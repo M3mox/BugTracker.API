@@ -75,28 +75,50 @@ User: Can create and manage their own tickets, assign tickets to other users
 Admin: Additional permissions to edit/delete any ticket, indicated by an "Admin" badge
 
 📁 Project Structure
+
 /
+
 ├── Program.cs              # Main application entry point
+
 │
 ├── Controllers/            # API Controllers
+
 │   ├── AuthController.cs   # Authentication endpoints
+
 │   ├── BugController.cs    # Bug ticket endpoints
+
 │   └── UsersController.cs  # User management endpoints
+
 │
+
 ├── Models/                 # Data models
+
 │   ├── Bug.cs              # Bug ticket model
+
 │   └── User.cs             # User model
+
 │
+
 ├── DTO/                    # Data Transfer Objects
+
 │   ├── BugDTO.cs           # Bug DTO
+
 │   └── UserDTO.cs          # User DTO
+
 │
+
 ├── Data/                   # Database context
+
 │   └── BugContext.cs       # EF Core DB context
+
 │
+
 ├── Service/               # Business logic services
+
 │   └── UserService.cs      # User management service
+
 │
+
 └── wwwroot/                # Static web files (frontend)
     ├── index.html          # Main dashboard
     ├── login.html          # Login page
@@ -107,6 +129,7 @@ Admin: Additional permissions to edit/delete any ticket, indicated by an "Admin"
     ├── css/                # Stylesheet folder
     │   └── style.css       # CSS styles
     └── favicon files       # Various favicon formats
+    
 🔐 Authentication Flow
 
 User registers or logs in through the web interface

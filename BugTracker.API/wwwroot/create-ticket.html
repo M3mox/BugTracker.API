@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Ticket - Bug Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="/css/style.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-2xl mx-auto p-6 mt-8 bg-white rounded shadow">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">
+                🐞 Create New Ticket
+                <span id="admin-badge" class="admin-badge hidden">Admin</span>
+            </h1>
+            <a href="index.html" class="text-blue-600 hover:underline">Back to Dashboard</a>
+        </div>
+
+        <!-- Bug-Erstellungsformular -->
+        <form id="create-bug-form" class="space-y-4 mb-6">
+            <input type="text" id="bug-title" placeholder="Title" required class="w-full p-2 border rounded" />
+            <textarea id="bug-description" placeholder="Description" required class="w-full p-2 border rounded h-32"></textarea>
+            <select id="bug-status" required class="w-full p-2 border rounded">
+                <option value="">Select Status</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+            </select>
+            <!-- Zuweisung -->
+            <select id="assigned-user" class="w-full p-2 border rounded">
+                <option value="">Assign to...</option>
+                <!-- Dynamisch befüllt via JavaScript -->
+            </select>
+
+            <div class="flex gap-2">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                    Create Ticket
+                </button>
+                <button type="button" id="cancel-edit-btn" class="bg-gray-400 text-white px-4 py-2 rounded hidden">
+                    Cancel Edit
+                </button>
+            </div>
+            <div id="edit-hint" class="text-blue-600 font-medium hidden">
+                🛠️ Editing mode is active. Make changes and submit to update.
+            </div>
+        </form>
+    </div>
+
+    <script src="/create-ticket.js"></script>
+</body>
+</html>

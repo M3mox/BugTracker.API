@@ -1,5 +1,4 @@
-﻿﻿
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8" />
@@ -14,49 +13,20 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 </head>
-
 <body class="bg-gray-100 text-gray-800">
     <div class="max-w-4xl mx-auto p-6 mt-8 bg-white rounded shadow">
         <h1 class="text-2xl font-bold mb-4">
             🐞 Bug Tracker Dashboard
             <span id="admin-badge" class="admin-badge hidden">Admin</span>
         </h1>
-
-        <div class="mb-4">
+        <div class="mb-6 flex justify-between">
+            <a href="create-ticket.html" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+                Create Ticket
+            </a>
             <button id="logout-button" class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
                 Logout
             </button>
         </div>
-
-        <!-- Bug-Erstellungsformular -->
-        <form id="create-bug-form" class="space-y-4 mb-6">
-            <input type="text" id="bug-title" placeholder="Title" required class="w-full p-2 border rounded" />
-            <textarea id="bug-description" placeholder="Description" required class="w-full p-2 border rounded"></textarea>
-            <select id="bug-status" required class="w-full p-2 border rounded">
-                <option value="">Select Status</option>
-                <option value="Open">Open</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-            </select>
-            <!-- Zuweisung -->
-            <select id="assigned-user" class="w-full p-2 border rounded">
-                <option value="">Assign to...</option>
-                <!-- Dynamisch befüllt via JavaScript -->
-            </select>
-
-            <div class="flex gap-2">
-                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-                    Create Ticket
-                </button>
-                <button type="button" id="cancel-edit-btn" class="bg-gray-400 text-white px-4 py-2 rounded hidden">
-                    Cancel Edit
-                </button>
-            </div>
-            <div id="edit-hint" class="text-blue-600 font-medium hidden">
-                🛠️ Editing mode is active. Make changes and submit to update.
-            </div>
-        </form>
-
         <!-- Bugliste -->
         <div class="overflow-auto rounded border border-gray-300 shadow-sm">
             <table class="min-w-full divide-y divide-gray-200">
@@ -74,7 +44,6 @@
             </table>
         </div>
     </div>
-
     <!-- Bug Details Modal -->
     <div id="bug-detail-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
         <div class="bg-white p-6 rounded-lg max-w-md w-full">
@@ -85,7 +54,6 @@
             </button>
         </div>
     </div>
-
     <script src="/script.js"></script>
 </body>
 </html>

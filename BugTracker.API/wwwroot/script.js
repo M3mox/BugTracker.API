@@ -1,9 +1,4 @@
 ﻿document.addEventListener("DOMContentLoaded", function () {
-    const createForm = document.getElementById("create-bug-form");
-    const assignedUserSelect = document.getElementById("assigned-user");
-
-    let currentlyEditingId = null;
-
     const token = localStorage.getItem("token");
     let userRole = null;
     let username = null;
@@ -36,123 +31,6 @@
         document.getElementById("bug-detail-modal").classList.add("hidden");
     });
 
-    createForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
-
-        const title = document.getElementById("bug-title").value;
-        const description = document.getElementById("bug-description").value;
-        const status = document.getElementById("bug-status").value;
-
-
-        // alle user dürfen assignedTo setzen
-        let assignedTo = null;
-
-        assignedTo = assignedUserSelect.value || null;
-
-
-        const bugData = {
-            id: currentlyEditingId ?? 0,
-            title,
-            description,
-            status
-
-        };
-
-        if (assignedTo) {
-            bugData.assignedToID = assignedTo;
-        }
-
-        const url = currentlyEditingId
-            ? `https://localhost:7063/api/Bugs/${currentlyEditingId}`
-            : "https://localhost:7063/api/Bugs";
-
-        const method = currentlyEditingId ? "PUT" : "POST";
-
-        const response = await fetch(url, {
-            method,
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify(bugData)
-        });
-
-        if (response.ok) {
-            const isUpdate = currentlyEditingId !== null;
-            createForm.reset();
-            currentlyEditingId = null;
-            document.getElementById("cancel-edit-btn").classList.add("hidden");
-            document.getElementById("edit-hint").style.display = "none";
-            document.getElementById("create-bug-form").classList.remove("edit-mode");
-            document.querySelector("#create-bug-form button[type='submit']").textContent = "Create Ticket";
-            await fetchBugs();
-
-            Swal.fire({
-                title: isUpdate ? "Ticket updated!" : "Ticket created!",
-                icon: "success",
-                timer: 1100,
-                showConfirmButton: false
-            });
-        } else if (response.status === 403) {
-            Swal.fire({
-                title: "Access denied",
-                text: "You don't have permission to edit this ticket.",
-                icon: "error",
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-    });
-
-    document.getElementById("cancel-edit-btn").addEventListener("click", () => {
-        createForm.reset();
-        currentlyEditingId = null;
-        document.getElementById("cancel-edit-btn").classList.add("hidden");
-        document.getElementById("edit-hint").style.display = "none";
-        document.getElementById("create-bug-form").classList.remove("edit-mode");
-        document.querySelector("#create-bug-form button[type='submit']").textContent = "Create Ticket";
-    });
-
-    async function fetchUsers() {
-        if (!assignedUserSelect) return; // Sicherheits-Check statt Rollensperre
-
-
-        const res = await fetch("https://localhost:7063/api/Users", {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        if (!res.ok) {
-            const errorText = await res.text(); // liest leere oder Fehlermeldung
-            console.error(`Error fetching users: ${res.status}`, errorText);
-            return;
-        }
-
-        const users = await res.json();
-
-        assignedUserSelect.innerHTML = '<option value="">Assign to...</option>';
-
-        const usernames = users.map(user => user.username || user.name);
-
-        if (!usernames.includes(username)) {
-            const selfOption = document.createElement("option");
-            selfOption.value = username;
-            selfOption.textContent = `${username} (You)`;
-            assignedUserSelect.appendChild(selfOption);
-        }
-
-        users.forEach(user => {
-            const displayName = user.username || user.name;
-            const opt = document.createElement("option");
-            opt.value = user.id;
-            opt.textContent = displayName === username ? `${displayName} (You)` : displayName;
-            assignedUserSelect.appendChild(opt);
-        });
-
-        console.log("Fetched users for assignment:", users);
-    }
-
-
-
     async function fetchBugs() {
         const response = await fetch("https://localhost:7063/api/Bugs", {
             headers: { "Authorization": `Bearer ${token}` }
@@ -177,7 +55,7 @@
 
             let actionButtons = "";
             if (canEdit) {
-                actionButtons += `<button onclick="editBug(event, ${bug.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mr-1">Edit</button>`;
+                actionButtons += `<a href="create-ticket.html?id=${bug.id}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mr-1">Edit</a>`;
             }
             if (canDelete) {
                 actionButtons += `<button onclick="deleteBug(event, ${bug.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">Delete</button>`;
@@ -232,52 +110,6 @@
         }
     };
 
-
-    window.editBug = async function (event, id) {
-        event.stopPropagation();
-
-        const response = await fetch(`https://localhost:7063/api/Bugs/${id}`, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-
-        const bug = await response.json();
-
-        // Debugging zum Verständnis des API-Responses
-        console.log("Bug data from API:", bug);
-
-        document.getElementById("bug-title").value = bug.title;
-        document.getElementById("bug-description").value = bug.description;
-        document.getElementById("bug-status").value = bug.status;
-
-
-        if (assignedUserSelect) {
-            // Prüfen, ob ein Benutzer zugewiesen ist und in welchem Format die Daten sind
-            if (bug.assignedToID) {
-                // Fall 1: API gibt assignedToID direkt zurück
-                assignedUserSelect.value = bug.assignedToID;
-            } else if (bug.assignedTo && typeof bug.assignedTo === 'object' && bug.assignedTo.id) {
-                // Fall 2: API gibt ein assignedTo-Objekt mit einer ID zurück
-                assignedUserSelect.value = bug.assignedTo.id;
-            } else if (bug.assignedTo && typeof bug.assignedTo === 'string') {
-                // Fall 3: API gibt ein assignedTo als String zurück (evtl. ist es die ID)
-                assignedUserSelect.value = bug.assignedTo;
-            } else {
-                // Kein Benutzer zugewiesen oder unbekanntes Format
-                assignedUserSelect.value = "";
-            }
-
-            console.log("Setting assignedUserSelect value to:", assignedUserSelect.value);
-        }
-
-        currentlyEditingId = bug.id;
-
-        document.querySelector("#create-bug-form button[type='submit']").textContent = "Update";
-        document.getElementById("cancel-edit-btn").classList.remove("hidden");
-        document.getElementById("edit-hint").innerText = "🛠️ Edit-mode is activated.";
-        document.getElementById("edit-hint").style.display = "block";
-        document.getElementById("create-bug-form").classList.add("edit-mode");
-    };
-
     function redirectToLogin(message) {
         Swal.fire({
             title: "Access denied",
@@ -292,6 +124,5 @@
         }, 1800);
     }
 
-    fetchUsers();
     fetchBugs();
 });

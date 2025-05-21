@@ -117,13 +117,13 @@ Admin: Additional permissions to edit/delete any ticket, indicated by an "Admin"
 
 │   └── UserService.cs      # User management service
 
-└── wwwroot/                # Static web files (frontend)
+│
+
+├──  wwwroot/                # Static web files (frontend)
 
 │   └── index.html          # Main dashboard
 
-│     
-
-│    └── login.html          # Login page
+│   └── login.html          # Login page
 
 │   └── register.html       # Registration page
 

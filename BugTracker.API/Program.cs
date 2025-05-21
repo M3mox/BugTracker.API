@@ -1,4 +1,5 @@
 ﻿using BugTracker.Api.Data;
+using BugTracker.API.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -47,16 +48,13 @@ builder.Services.AddAuthentication(options =>
     .AddJwtBearer(options =>
     {
         var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
-
         if (keyBytes.Length < 32)
         {
             var extended = new byte[32];
             Array.Copy(keyBytes, extended, keyBytes.Length);
             keyBytes = extended;
         }
-
         var key = new SymmetricSecurityKey(keyBytes);
-
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -68,7 +66,11 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = key
         };
     });
+
+// Password Hasher für unser User-Modell hinzufügen
+builder.Services.AddTransient<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddTransient<UserService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -83,22 +85,31 @@ if (app.Environment.IsDevelopment())
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
-
 app.UseRouting();
 
 app.UseCors("AllowAll");
-
 app.UseAuthentication(); // <<< Wichtig: Vor Authorization
 app.UseAuthorization();
 
-
-// --- DB sicherstellen ---
+// --- DB sicherstellen und Passwörter migrieren ---
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BugContext>();
     db.Database.EnsureCreated();
+
+    // Bestehende Benutzer zu gehashten Passwörtern migrieren 
+    // (nur beim ersten Start nach dem Update ausführen)
+    try
+    {
+        var userService = scope.ServiceProvider.GetRequiredService<UserService>();
+        userService.MigrateUsersToHashedPasswords();
+        Console.WriteLine("User password migration completed successfully");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error during password migration: {ex.Message}");
+    }
 }
+
 app.MapControllers();
-
-
 app.Run();

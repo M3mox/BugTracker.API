@@ -93,6 +93,14 @@
                 timer: 1100,
                 showConfirmButton: false
             });
+        } else if (response.status === 403) {
+            Swal.fire({
+                title: "Access denied",
+                text: "You don't have permission to edit this ticket.",
+                icon: "error",
+                timer: 2000,
+                showConfirmButton: false
+            });
         }
     });
 
@@ -157,15 +165,21 @@
         bugs.forEach(bug => {
             const createdAtFormatted = new Date(bug.createdAt).toLocaleString("de-DE");
             const updatedAtFormatted = bug.updatedAt ? new Date(bug.updatedAt).toLocaleString("de-DE") : "-";
+            const createdByUsername = bug.createdBy?.username || "-";
 
             const row = document.createElement("tr");
             row.classList.add("hover:bg-gray-50");
 
+            // Check if user can edit this bug (user is creator OR admin)
+            const canEdit = userRole === "admin" || createdByUsername === username;
+            // Only admin can delete bugs
+            const canDelete = userRole === "admin";
+
             let actionButtons = "";
-            if (userRole === "admin" || bug.createdBy === username) {
-                actionButtons += `<button onclick="editBug(event, ${bug.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">Edit</button>`;
+            if (canEdit) {
+                actionButtons += `<button onclick="editBug(event, ${bug.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mr-1">Edit</button>`;
             }
-            if (userRole === "admin") {
+            if (canDelete) {
                 actionButtons += `<button onclick="deleteBug(event, ${bug.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">Delete</button>`;
             }
 
@@ -231,15 +245,11 @@
         // Debugging zum Verständnis des API-Responses
         console.log("Bug data from API:", bug);
 
-        if (userRole !== "admin" && bug.createdBy !== username) {
-            return Swal.fire("Access denied", "You are not allowed to edit this ticket.", "error");
-        }
-
         document.getElementById("bug-title").value = bug.title;
         document.getElementById("bug-description").value = bug.description;
         document.getElementById("bug-status").value = bug.status;
 
-        
+
         if (assignedUserSelect) {
             // Prüfen, ob ein Benutzer zugewiesen ist und in welchem Format die Daten sind
             if (bug.assignedToID) {

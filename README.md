@@ -120,15 +120,25 @@ Admin: Additional permissions to edit/delete any ticket, indicated by an "Admin"
 │
 
 └── wwwroot/                # Static web files (frontend)
+
     ├── index.html          # Main dashboard
+    
     ├── login.html          # Login page
+    
     ├── register.html       # Registration page
+    
     ├── script.js           # Main dashboard script
+    
     ├── login.js            # Login page script
+    
     ├── register.js         # Registration page script
+    
     ├── css/                # Stylesheet folder
+    
     │   └── style.css       # CSS styles
+    
     └── favicon files       # Various favicon formats
+    
     
 🔐 Authentication Flow
 

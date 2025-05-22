@@ -22,10 +22,11 @@ namespace BugTracker.Api.Controllers
         [Authorize]
         public IActionResult GetUsers()
         {
-            var users = _userService.GetUsers().Select(u => new UserDTO { 
+            var users = _userService.GetUsers().Select(u => new UserDTO
+            {
                 Id = u.Id,
                 Username = u.Username,
-                Role = u.Role 
+                Role = u.Role
             });
             return Ok(users);
         }

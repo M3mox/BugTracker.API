@@ -3,6 +3,7 @@ using BugTracker.Api.Controllers;
 using BugTracker.API.DTO;
 using BugTracker.Api.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -84,6 +85,47 @@ namespace BugTracker.API.Service
             user.Password = _passwordHasher.HashPassword(user, newPassword);
             _context.SaveChanges();
 
+            return true;
+        }
+
+        // NEUE METHODE: Sicheres Löschen von Benutzern
+        public async Task<bool> DeleteUserSafeAsync(string userId)
+        {
+            var user = _context.User.FirstOrDefault(u => u.Id == userId);
+            if (user == null)
+                return false;
+
+            // Prüfen, ob der User noch in Bugs referenziert wird
+            var hasBugsAsCreator = await _context.Bugs.AnyAsync(b => b.CreatedBy != null && b.CreatedBy.Id == userId);
+            var hasBugsAsAssigned = await _context.Bugs.AnyAsync(b => b.AssignedTo != null && b.AssignedTo.Id == userId);
+
+            // Prüfen, ob der User noch in Comments referenziert wird
+            var hasComments = await _context.Comments.AnyAsync(c => c.CreatedBy != null && c.CreatedBy.Id == userId);
+
+            if (hasBugsAsCreator || hasBugsAsAssigned || hasComments)
+            {
+                // User kann nicht gelöscht werden, da er noch referenziert wird
+                return false;
+            }
+
+            // User kann sicher gelöscht werden
+            _context.User.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        //User deaktivieren statt löschen
+        public async Task<bool> DeactivateUserAsync(string userId)
+        {
+            var user = _context.User.FirstOrDefault(u => u.Id == userId);
+            if (user == null)
+                return false;
+
+            
+            
+            user.Username = $"[DELETED]_{user.Username}_{DateTime.UtcNow.Ticks}";
+
+            await _context.SaveChangesAsync();
             return true;
         }
 

@@ -1,5 +1,4 @@
-﻿
-document.addEventListener("DOMContentLoaded", function () {
+﻿document.addEventListener("DOMContentLoaded", function () {
     const registerForm = document.getElementById("register-form");
     const errorBox = document.getElementById("register-error");
 

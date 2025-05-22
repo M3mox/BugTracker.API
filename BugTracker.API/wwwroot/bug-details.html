@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bug Details - Bug Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="/css/style.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="max-w-3xl mx-auto p-6 mt-8 bg-white rounded shadow">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold flex items-center">
+                🐞 Bug Details
+                <span id="admin-badge" class="admin-badge hidden ml-2">Admin</span>
+            </h1>
+            <a href="index.html" class="text-blue-600 hover:underline">Back to Dashboard</a>
+        </div>
+
+        <!-- Bug Details -->
+        <div id="bug-details" class="mb-8">
+            <div class="flex justify-between items-start">
+                <h2 id="bug-title" class="text-xl font-semibold mb-2">Loading...</h2>
+                <div id="bug-actions" class="flex space-x-2">
+                    <!-- Action buttons will be inserted here -->
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <p class="text-sm text-gray-500">Status</p>
+                    <p id="bug-status" class="font-medium">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Assigned To</p>
+                    <p id="bug-assigned" class="font-medium">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Created At</p>
+                    <p id="bug-created" class="font-medium">-</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Updated At</p>
+                    <p id="bug-updated" class="font-medium">-</p>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-md font-semibold mb-2">Description</h3>
+                <div id="bug-description" class="bg-gray-50 p-4 rounded border border-gray-200 whitespace-pre-wrap">
+                    Loading...
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div id="comments-section" class="mb-6">
+            <h3 class="text-lg font-semibold mb-4">Comments</h3>
+            <div id="comments-list" class="space-y-4 mb-6">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Add Comment Form -->
+        <div class="bg-gray-50 p-4 rounded border border-gray-200">
+            <h3 class="text-md font-semibold mb-2">Add Comment</h3>
+            <form id="comment-form" class="space-y-4">
+                <textarea id="comment-text"
+                          class="w-full p-3 border rounded focus:ring focus:ring-blue-300"
+                          rows="3"
+                          placeholder="Enter your comment or solution details here..."
+                          required></textarea>
+                <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                    Post Comment
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/bug-details.js"></script>
+</body>
+</html>

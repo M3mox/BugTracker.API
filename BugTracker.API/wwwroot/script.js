@@ -1,4 +1,5 @@
-﻿document.addEventListener("DOMContentLoaded", function () {
+﻿
+document.addEventListener("DOMContentLoaded", function () {
     const token = localStorage.getItem("token");
     let userRole = null;
     let username = null;
@@ -27,10 +28,6 @@
         window.location.href = "login.html";
     });
 
-    document.getElementById("close-modal-btn").addEventListener("click", function () {
-        document.getElementById("bug-detail-modal").classList.add("hidden");
-    });
-
     async function fetchBugs() {
         const response = await fetch("https://localhost:7063/api/Bugs", {
             headers: { "Authorization": `Bearer ${token}` }
@@ -44,12 +41,17 @@
             const createdAtFormatted = new Date(bug.createdAt).toLocaleString("de-DE");
             const updatedAtFormatted = bug.updatedAt ? new Date(bug.updatedAt).toLocaleString("de-DE") : "-";
             const createdByUsername = bug.createdBy?.username || "-";
+            const assignedToUsername = bug.assignedTo?.username || "-";
 
             const row = document.createElement("tr");
             row.classList.add("hover:bg-gray-50");
 
-            // Check if user can edit this bug (user is creator OR admin)
-            const canEdit = userRole === "admin" || createdByUsername === username;
+            // Check if user can edit this bug
+            // User can edit if: Admin OR Created the bug OR Assigned to the bug
+            const canEdit = userRole === "admin" ||
+                createdByUsername === username ||
+                assignedToUsername === username;
+
             // Only admin can delete bugs
             const canDelete = userRole === "admin";
 
@@ -61,13 +63,21 @@
                 actionButtons += `<button onclick="deleteBug(event, ${bug.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">Delete</button>`;
             }
 
-            row.addEventListener("click", () => showBugDetails(bug));
+            // Klick-Event nur für die Zeile (nicht für Buttons)
+            row.addEventListener("click", (e) => {
+                // Verhindere das Modal, wenn auf Button geklickt wurde
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') {
+                    return;
+                }
+                // Statt Modal zu öffnen, zur Bug-Details-Seite navigieren
+                window.location.href = `bug-details.html?id=${bug.id}`;
+            });
             row.innerHTML = `
                 <td class="px-6 py-4 border-b text-sm text-gray-700">${bug.title}</td>
                 <td class="px-6 py-4 border-b text-sm text-gray-700">${bug.status}</td>
                 <td class="px-6 py-4 border-b text-sm text-gray-700">${createdAtFormatted}</td>
                 <td class="px-6 py-4 border-b text-sm text-gray-700">${updatedAtFormatted}</td>
-                <td class="px-6 py-4 border-b text-sm text-gray-700">${bug.assignedTo?.username || "-"}</td>
+                <td class="px-6 py-4 border-b text-sm text-gray-700">${assignedToUsername}</td>
                 <td class="px-6 py-4 border-b whitespace-nowrap text-sm text-right space-x-2">${actionButtons}</td>
             `;
 
@@ -75,12 +85,23 @@
         });
     }
 
-    function showBugDetails(bug) {
-        document.getElementById("bug-detail-title").innerText = bug.title;
-        document.getElementById("bug-detail-description").innerText = bug.description;
-        document.getElementById("bug-detail-modal").classList.remove("hidden");
+    function redirectToLogin(message) {
+        Swal.fire({
+            title: "Access denied",
+            text: message,
+            icon: "warning",
+            showConfirmButton: false,
+            timer: 1800
+        });
+
+        setTimeout(() => {
+            window.location.href = "login.html";
+        }, 1800);
     }
 
+    fetchBugs();
+
+    // Delete function (global scope for onclick)
     window.deleteBug = async function (event, id) {
         event.stopPropagation();
 
@@ -109,20 +130,4 @@
             }
         }
     };
-
-    function redirectToLogin(message) {
-        Swal.fire({
-            title: "Access denied",
-            text: message,
-            icon: "warning",
-            showConfirmButton: false,
-            timer: 1800
-        });
-
-        setTimeout(() => {
-            window.location.href = "login.html";
-        }, 1800);
-    }
-
-    fetchBugs();
 });

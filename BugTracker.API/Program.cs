@@ -1,5 +1,6 @@
 ﻿using BugTracker.Api.Data;
 using BugTracker.API.Models;
+using BugTracker.Api.Models; // Hinzufügen für Comment
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -94,19 +95,43 @@ app.UseAuthorization();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BugContext>();
-    db.Database.EnsureCreated();
 
-    // Bestehende Benutzer zu gehashten Passwörtern migrieren 
-    // (nur beim ersten Start nach dem Update ausführen)
     try
     {
+        // NUR sicherstellen, dass die DB existiert (OHNE Löschen!)
+        Console.WriteLine("Ensuring database exists...");
+        db.Database.EnsureCreated();
+
+        Console.WriteLine("Database ensured successfully");
+
+        // Testen, ob die Comments-Tabelle existiert
+        var commentsExist = db.Database.CanConnect() &&
+                           db.Model.FindEntityType(typeof(Comment)) != null;
+        Console.WriteLine($"Comments table exists: {commentsExist}");
+
+        // Bestehende Benutzer zu gehashten Passwörtern migrieren 
         var userService = scope.ServiceProvider.GetRequiredService<UserService>();
         userService.MigrateUsersToHashedPasswords();
         Console.WriteLine("User password migration completed successfully");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Error during password migration: {ex.Message}");
+        Console.WriteLine($"Error during database initialization: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+        // Falls die Initialisierung fehlschlägt, versuchen wir es nochmal
+        try
+        {
+            Console.WriteLine("Trying fallback database creation...");
+            db.Database.EnsureCreated();
+            var userService = scope.ServiceProvider.GetRequiredService<UserService>();
+            userService.MigrateUsersToHashedPasswords();
+            Console.WriteLine("Fallback database creation successful");
+        }
+        catch (Exception fallbackEx)
+        {
+            Console.WriteLine($"Fallback also failed: {fallbackEx.Message}");
+        }
     }
 }
 

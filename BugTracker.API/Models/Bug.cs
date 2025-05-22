@@ -12,4 +12,5 @@ public class Bug
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public User? AssignedTo { get; set; }
+    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
 }

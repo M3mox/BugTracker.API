@@ -5,7 +5,7 @@
 namespace BugTracker.API.Migrations
 {
     /// <inheritdoc />
-    public partial class register : Migration
+    public partial class CommetsFixed : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

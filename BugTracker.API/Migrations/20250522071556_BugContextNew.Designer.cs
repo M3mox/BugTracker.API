@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BugTracker.API.Migrations
 {
     [DbContext(typeof(BugContext))]
-    [Migration("20250519123630_Initial")]
-    partial class Initial
+    [Migration("20250522071556_BugContextNew")]
+    partial class BugContextNew
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

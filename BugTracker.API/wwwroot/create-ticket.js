@@ -41,7 +41,7 @@
         const description = document.getElementById("bug-description").value;
         const status = document.getElementById("bug-status").value;
 
-        // alle user dürfen assignedTo setzen
+        // all users are allowed to set the assigned to
         let assignedTo = null;
         assignedTo = assignedUserSelect.value || null;
 
@@ -95,7 +95,7 @@
     });
 
     async function fetchUsers() {
-        if (!assignedUserSelect) return; // Sicherheits-Check statt Rollensperre
+        if (!assignedUserSelect) return; // Security-Check instead of role-banning
 
         const res = await fetch("https://localhost:7063/api/Users", {
             headers: { "Authorization": `Bearer ${token}` }
@@ -159,18 +159,18 @@
         document.getElementById("bug-status").value = bug.status;
 
         if (assignedUserSelect) {
-            // Prüfen, ob ein Benutzer zugewiesen ist und in welchem Format die Daten sind
+            // check, if a user is assigned and in which format the data is
             if (bug.assignedToID) {
-                // Fall 1: API gibt assignedToID direkt zurück
+                // Case 1: API directly gives assignedToId back
                 assignedUserSelect.value = bug.assignedToID;
             } else if (bug.assignedTo && typeof bug.assignedTo === 'object' && bug.assignedTo.id) {
-                // Fall 2: API gibt ein assignedTo-Objekt mit einer ID zurück
+                // Case 2: API gives back an assignedTo-Object with an ID
                 assignedUserSelect.value = bug.assignedTo.id;
             } else if (bug.assignedTo && typeof bug.assignedTo === 'string') {
-                // Fall 3: API gibt ein assignedTo als String zurück (evtl. ist es die ID)
+                // Case 3: API gives assignedTo back as a String (evtl. it is the ID)
                 assignedUserSelect.value = bug.assignedTo;
             } else {
-                // Kein Benutzer zugewiesen oder unbekanntes Format
+                // no user assigned or unknown format
                 assignedUserSelect.value = "";
             }
 

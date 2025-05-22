@@ -9,7 +9,7 @@
         const password = document.getElementById("password").value;
         const confirmPassword = document.getElementById("confirm-password").value;
 
-        // Validierung
+        // Validation
         if (password !== confirmPassword) {
             errorBox.textContent = "Passwords do not match!";
             errorBox.classList.remove("hidden");
@@ -33,7 +33,7 @@
             });
 
             if (response.ok) {
-                // Registrierung erfolgreich
+                // registration successful
                 Swal.fire({
                     title: "Success!",
                     text: "Registration successful! You can now log in.",
@@ -42,7 +42,7 @@
                     showConfirmButton: false
                 });
 
-                // Nach kurzer Verzögerung zur Login-Seite weiterleiten
+                // Redirect to the login page after a short delay
                 setTimeout(() => {
                     window.location.href = "login.html";
                 }, 2000);

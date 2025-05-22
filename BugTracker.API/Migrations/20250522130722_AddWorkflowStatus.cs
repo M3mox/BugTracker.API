@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BugTracker.API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class AddWorkflowStatus : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -182,7 +182,8 @@ namespace BugTracker.API.Migrations
                     CreatedById = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    AssignedToId = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                    AssignedToId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    StatusEnum = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -206,11 +207,10 @@ namespace BugTracker.API.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    BugId = table.Column<int>(type: "int", nullable: false),
-                    CreatedById = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    BugId1 = table.Column<int>(type: "int", nullable: true)
+                    BugId = table.Column<int>(type: "int", nullable: false),
+                    CreatedById = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -222,13 +222,37 @@ namespace BugTracker.API.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Comments_Bugs_BugId1",
-                        column: x => x.BugId1,
-                        principalTable: "Bugs",
-                        principalColumn: "Id");
-                    table.ForeignKey(
                         name: "FK_Comments_User_CreatedById",
                         column: x => x.CreatedById,
+                        principalTable: "User",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StatusTransitions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    BugId = table.Column<int>(type: "int", nullable: false),
+                    FromStatus = table.Column<int>(type: "int", nullable: false),
+                    ToStatus = table.Column<int>(type: "int", nullable: false),
+                    Comment = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TransitionDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ChangedById = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StatusTransitions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_StatusTransitions_Bugs_BugId",
+                        column: x => x.BugId,
+                        principalTable: "Bugs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StatusTransitions_User_ChangedById",
+                        column: x => x.ChangedById,
                         principalTable: "User",
                         principalColumn: "Id");
                 });
@@ -288,14 +312,19 @@ namespace BugTracker.API.Migrations
                 column: "BugId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Comments_BugId1",
-                table: "Comments",
-                column: "BugId1");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Comments_CreatedById",
                 table: "Comments",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StatusTransitions_BugId",
+                table: "StatusTransitions",
+                column: "BugId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StatusTransitions_ChangedById",
+                table: "StatusTransitions",
+                column: "ChangedById");
         }
 
         /// <inheritdoc />
@@ -318,6 +347,9 @@ namespace BugTracker.API.Migrations
 
             migrationBuilder.DropTable(
                 name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "StatusTransitions");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");

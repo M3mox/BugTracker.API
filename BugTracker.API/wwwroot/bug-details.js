@@ -35,6 +35,7 @@
     // Initialize the page
     loadBugDetails(bugId);
     loadComments(bugId);
+    loadWorkflowInfo(bugId);
 
     // Set up comment form submission
     const commentForm = document.getElementById("comment-form");
@@ -67,33 +68,7 @@
             document.getElementById("bug-description").textContent = bug.description;
 
             // Setup action buttons
-            const actionsContainer = document.getElementById("bug-actions");
-            actionsContainer.innerHTML = "";
-
-            // Check if user can edit this bug
-            // User can edit if: Admin OR Created the bug OR Assigned to the bug
-            const canEdit = userRole === "admin" ||
-                (bug.createdBy?.username === username) ||
-                (bug.assignedTo?.username === username);
-
-            // Only admin can delete bugs
-            const canDelete = userRole === "admin";
-
-            if (canEdit) {
-                const editButton = document.createElement("a");
-                editButton.href = `create-ticket.html?id=${bug.id}`;
-                editButton.className = "bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm";
-                editButton.textContent = "Edit";
-                actionsContainer.appendChild(editButton);
-            }
-
-            if (canDelete) {
-                const deleteButton = document.createElement("button");
-                deleteButton.className = "bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm";
-                deleteButton.textContent = "Delete";
-                deleteButton.addEventListener("click", () => deleteBug(bug.id));
-                actionsContainer.appendChild(deleteButton);
-            }
+            setupActionButtons(bug);
 
         } catch (error) {
             console.error("Error loading bug details:", error);
@@ -107,6 +82,184 @@
         }
     }
 
+    async function loadWorkflowInfo(bugId) {
+        try {
+            const response = await fetch(`https://localhost:7063/api/Bugs/${bugId}/workflow`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                console.log("Workflow info not available yet");
+                return;
+            }
+
+            const workflowInfo = await response.json();
+            displayWorkflowInfo(workflowInfo);
+        } catch (error) {
+            console.error("Error loading workflow info:", error);
+        }
+    }
+
+    function displayWorkflowInfo(workflowInfo) {
+        // Add workflow section after bug details
+        const bugDetailsSection = document.getElementById("bug-details");
+
+        // Remove existing workflow section if it exists
+        const existingWorkflow = document.getElementById("workflow-section");
+        if (existingWorkflow) {
+            existingWorkflow.remove();
+        }
+
+        const workflowSection = document.createElement("div");
+        workflowSection.id = "workflow-section";
+        workflowSection.className = "mb-8 bg-gray-50 p-6 rounded border border-gray-200";
+
+        let statusTransitionsHTML = "";
+        if (workflowInfo.allowedTransitions && workflowInfo.allowedTransitions.length > 0) {
+            statusTransitionsHTML = workflowInfo.allowedTransitions.map(transition =>
+                `<button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mr-2 mb-2" 
+                         onclick="transitionStatus('${transition}')">${transition}</button>`
+            ).join("");
+        } else {
+            statusTransitionsHTML = '<p class="text-gray-500 italic">No status transitions available</p>';
+        }
+
+        let statusHistoryHTML = "";
+        if (workflowInfo.statusHistory && workflowInfo.statusHistory.length > 0) {
+            statusHistoryHTML = workflowInfo.statusHistory.map(history =>
+                `<div class="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                    <div>
+                        <span class="text-sm font-medium">${history.fromStatus} → ${history.toStatus}</span>
+                        ${history.comment ? `<p class="text-xs text-gray-600">${history.comment}</p>` : ''}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                        <div>${history.changedBy?.username || 'System'}</div>
+                        <div>${new Date(history.transitionDate).toLocaleString("de-DE")}</div>
+                    </div>
+                </div>`
+            ).join("");
+        } else {
+            statusHistoryHTML = '<p class="text-gray-500 italic">No status history available</p>';
+        }
+
+        workflowSection.innerHTML = `
+            <h3 class="text-lg font-semibold mb-4">🔄 Workflow Management</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-medium mb-2">Current Status</h4>
+                    <p class="text-lg font-semibold text-blue-600 mb-4">${workflowInfo.currentStatus}</p>
+                    
+                    <h4 class="font-medium mb-2">Available Transitions</h4>
+                    <div class="mb-4">
+                        ${statusTransitionsHTML}
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="font-medium mb-2">Status History</h4>
+                    <div class="bg-white p-4 rounded border border-gray-200 max-h-64 overflow-y-auto">
+                        ${statusHistoryHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        bugDetailsSection.after(workflowSection);
+    }
+
+    function setupActionButtons(bug) {
+        const actionsContainer = document.getElementById("bug-actions");
+        actionsContainer.innerHTML = "";
+
+        // Check if user can edit this bug
+        const canEdit = userRole === "admin" ||
+            (bug.createdBy?.username === username) ||
+            (bug.assignedTo?.username === username);
+
+        // Only admin can delete bugs
+        const canDelete = userRole === "admin";
+
+        if (canEdit) {
+            const editButton = document.createElement("a");
+            editButton.href = `create-ticket.html?id=${bug.id}`;
+            editButton.className = "bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm";
+            editButton.textContent = "Edit";
+            actionsContainer.appendChild(editButton);
+        }
+
+        if (canDelete) {
+            const deleteButton = document.createElement("button");
+            deleteButton.className = "bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm";
+            deleteButton.textContent = "Delete";
+            deleteButton.addEventListener("click", () => deleteBug(bug.id));
+            actionsContainer.appendChild(deleteButton);
+        }
+
+        // Add workflow button
+        const workflowButton = document.createElement("a");
+        workflowButton.href = "workflow.html";
+        workflowButton.className = "bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm";
+        workflowButton.textContent = "Workflow";
+        actionsContainer.appendChild(workflowButton);
+    }
+
+    // Global function for status transitions
+    window.transitionStatus = async function (newStatus) {
+        const { value: comment } = await Swal.fire({
+            title: `Transition to ${newStatus}`,
+            input: 'textarea',
+            inputLabel: 'Comment (optional)',
+            inputPlaceholder: 'Add a comment about this status change...',
+            showCancelButton: true,
+            confirmButtonText: 'Confirm Transition',
+            cancelButtonText: 'Cancel'
+        });
+
+        if (comment !== undefined) { // User clicked confirm (even with empty comment)
+            try {
+                const response = await fetch(`https://localhost:7063/api/Bugs/${currentBugId}/transition`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        newStatus: newStatus,
+                        comment: comment || null
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`HTTP error! Status: ${response.status} - ${errorData}`);
+                }
+
+                const result = await response.json();
+
+                Swal.fire({
+                    title: "Status Updated!",
+                    text: `Status changed to: ${result.newStatus}`,
+                    icon: "success",
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                // Reload bug details and workflow info
+                await loadBugDetails(currentBugId);
+                await loadWorkflowInfo(currentBugId);
+
+            } catch (error) {
+                console.error("Error transitioning status:", error);
+                Swal.fire({
+                    title: "Error",
+                    text: "Failed to update status. You may not have permission for this transition.",
+                    icon: "error"
+                });
+            }
+        }
+    };
+
     async function loadComments(bugId) {
         try {
             const response = await fetch(`https://localhost:7063/api/Bugs/${bugId}/comments`, {
@@ -114,7 +267,6 @@
             });
 
             if (!response.ok) {
-                // If the endpoint doesn't exist yet, don't show an error
                 if (response.status === 404) {
                     const commentsList = document.getElementById("comments-list");
                     commentsList.innerHTML = '<p class="text-gray-500 italic">No comments yet.</p>';
@@ -127,7 +279,6 @@
             displayComments(comments);
         } catch (error) {
             console.error("Error loading comments:", error);
-        
             const commentsList = document.getElementById("comments-list");
             commentsList.innerHTML = '<p class="text-gray-500 italic">Unable to load comments.</p>';
         }
@@ -193,7 +344,6 @@
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            // Clear the form and reload comments
             document.getElementById("comment-text").value = "";
             await loadComments(bugId);
 
@@ -208,7 +358,7 @@
             console.error("Error submitting comment:", error);
             Swal.fire({
                 title: "Error",
-                text: "Failed to submit your comment. The comment feature may not be implemented yet on the server.",
+                text: "Failed to submit your comment.",
                 icon: "error"
             });
         }
@@ -236,7 +386,6 @@
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
-                // Reload comments
                 await loadComments(currentBugId);
 
                 Swal.fire({

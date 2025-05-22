@@ -1,5 +1,4 @@
-﻿﻿
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8" />
@@ -15,26 +14,72 @@
     <link rel="manifest" href="/site.webmanifest" />
 </head>
 <body class="bg-gray-100 text-gray-800">
-    <div class="max-w-4xl mx-auto p-6 mt-8 bg-white rounded shadow">
+    <div class="max-w-6xl mx-auto p-6 mt-8 bg-white rounded shadow">
         <h1 class="text-2xl font-bold mb-4">
             🐞 Bug Tracker Dashboard
             <span id="admin-badge" class="admin-badge hidden">Admin</span>
         </h1>
-        <div class="mb-6 flex justify-between">
-            <a href="create-ticket.html" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
-                Create Ticket
-            </a>
+
+        <div class="mb-6 flex justify-between items-center">
+            <div class="flex space-x-3">
+                <a href="create-ticket.html" class="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700">
+                    Create Ticket
+                </a>
+                <a href="workflow.html" class="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700">
+                    🔄 Workflow
+                </a>
+            </div>
             <button id="logout-button" class="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700">
                 Logout
             </button>
         </div>
-        <!-- Bugliste -->
+
+        <!-- Workflow Status Overview -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4">📊 Status Overview</h2>
+            <div id="status-overview" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <!-- Status cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Filter and Search -->
+        <div class="mb-6 bg-gray-50 p-4 rounded border border-gray-200">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div>
+                    <label for="status-filter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Status:</label>
+                    <select id="status-filter" class="border border-gray-300 rounded px-3 py-2 text-sm">
+                        <option value="">All Status</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="assigned-filter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Assignment:</label>
+                    <select id="assigned-filter" class="border border-gray-300 rounded px-3 py-2 text-sm">
+                        <option value="">All Users</option>
+                        <option value="unassigned">Unassigned</option>
+                        <option value="me">My Tickets</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">Search:</label>
+                    <input type="text" id="search-input" placeholder="Search tickets..."
+                           class="border border-gray-300 rounded px-3 py-2 text-sm w-48">
+                </div>
+                <div class="flex items-end">
+                    <button id="clear-filters" class="bg-gray-500 text-white px-3 py-2 rounded text-sm hover:bg-gray-600">
+                        Clear Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bug List Table -->
         <div class="overflow-auto rounded border border-gray-300 shadow-sm">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-100 text-left text-sm font-semibold text-gray-700">
                     <tr>
                         <th class="px-6 py-3 border-b">Title</th>
                         <th class="px-6 py-3 border-b">Status</th>
+                        <th class="px-6 py-3 border-b">Quick Actions</th>
                         <th class="px-6 py-3 border-b">Created at</th>
                         <th class="px-6 py-3 border-b">Updated at</th>
                         <th class="px-6 py-3 border-b">Assigned To</th>
@@ -44,17 +89,14 @@
                 <tbody id="bug-list" class="bg-white divide-y divide-gray-100"></tbody>
             </table>
         </div>
-    </div>
-    <!-- Bug Details Modal -->
-    <div id="bug-detail-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white p-6 rounded-lg max-w-md w-full">
-            <h2 class="text-xl font-bold mb-4" id="bug-detail-title"></h2>
-            <p id="bug-detail-description" class="text-gray-700"></p>
-            <button id="close-modal-btn" class="mt-4 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
-                Close
-            </button>
+
+        <!-- Loading indicator -->
+        <div id="loading-indicator" class="text-center py-8 hidden">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-2 text-gray-600">Loading...</p>
         </div>
     </div>
+
     <script src="/script.js"></script>
 </body>
 </html>

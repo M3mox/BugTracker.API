@@ -69,6 +69,9 @@ namespace BugTracker.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("StatusEnum")
+                        .HasColumnType("int");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -96,9 +99,6 @@ namespace BugTracker.API.Migrations
                     b.Property<int>("BugId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("BugId1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -116,11 +116,44 @@ namespace BugTracker.API.Migrations
 
                     b.HasIndex("BugId");
 
-                    b.HasIndex("BugId1");
-
                     b.HasIndex("CreatedById");
 
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("BugTracker.Api.Models.StatusTransition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BugId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChangedById")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("FromStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ToStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("TransitionDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BugId");
+
+                    b.HasIndex("ChangedById");
+
+                    b.ToTable("StatusTransitions");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -326,12 +359,12 @@ namespace BugTracker.API.Migrations
                     b.HasOne("BugTracker.API.Models.User", "AssignedTo")
                         .WithMany()
                         .HasForeignKey("AssignedToId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("BugTracker.API.Models.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("AssignedTo");
 
@@ -346,18 +379,32 @@ namespace BugTracker.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BugTracker.Api.Models.Bug", null)
-                        .WithMany("Comments")
-                        .HasForeignKey("BugId1");
-
                     b.HasOne("BugTracker.API.Models.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Bug");
 
                     b.Navigation("CreatedBy");
+                });
+
+            modelBuilder.Entity("BugTracker.Api.Models.StatusTransition", b =>
+                {
+                    b.HasOne("BugTracker.Api.Models.Bug", "Bug")
+                        .WithMany()
+                        .HasForeignKey("BugId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BugTracker.API.Models.User", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedById")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Bug");
+
+                    b.Navigation("ChangedBy");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -409,11 +456,6 @@ namespace BugTracker.API.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("BugTracker.Api.Models.Bug", b =>
-                {
-                    b.Navigation("Comments");
                 });
 #pragma warning restore 612, 618
         }

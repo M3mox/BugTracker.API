@@ -15,11 +15,13 @@ public class BugsController : ControllerBase
 {
     private readonly BugContext _context;
     private readonly UserService _userService;
+    private readonly BugWorkflowService _workflowService;
 
-    public BugsController(BugContext context, UserService userService)
+    public BugsController(BugContext context, UserService userService, BugWorkflowService workflowService)
     {
         _context = context;
         _userService = userService;
+        _workflowService = workflowService;
     }
 
     [HttpGet]
@@ -78,7 +80,8 @@ public class BugsController : ControllerBase
 
         // Get current user info
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("admin");
+        var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "user";
+        var isAdmin = userRole == "admin";
 
         // Check if user is authorized to update this bug
         // User can edit if: Admin OR Created the bug OR Assigned to the bug
@@ -89,11 +92,37 @@ public class BugsController : ControllerBase
         if (!canEdit)
             return Forbid("You can only edit bugs you created or bugs assigned to you.");
 
-        // Update fields from dto
+        // Handle status change through workflow if status is different
+        var currentStatus = bug.Status;
+        var newStatusString = bugDTO.Status;
+
+        if (currentStatus != newStatusString)
+        {
+            // Parse statuses
+            if (!Enum.TryParse<BugStatus>(currentStatus, out var currentStatusEnum) ||
+                !Enum.TryParse<BugStatus>(newStatusString, out var newStatusEnum))
+            {
+                return BadRequest("Invalid status value");
+            }
+
+            // Check if status transition is allowed
+            if (!_workflowService.IsTransitionAllowed(currentStatusEnum, newStatusEnum, userRole, bug, userId))
+            {
+                return Forbid($"Status transition from {BugWorkflowService.GetStatusDisplayName(currentStatusEnum)} to {BugWorkflowService.GetStatusDisplayName(newStatusEnum)} is not allowed for your role.");
+            }
+
+            // Perform workflow transition
+            await _workflowService.TransitionStatusAsync(bug, newStatusEnum, userId, "Status updated via bug edit");
+        }
+
+        // Update other fields
         bug.Title = bugDTO.Title;
         bug.Description = bugDTO.Description;
-        bug.Status = bugDTO.Status;
-        bug.UpdatedAt = DateTime.Now;
+        // Status is already updated through workflow if changed
+        if (currentStatus == newStatusString)
+        {
+            bug.UpdatedAt = DateTime.Now;
+        }
 
         // Only update assignedTo if a value was provided
         if (!string.IsNullOrEmpty(bugDTO.AssignedToID))
@@ -101,9 +130,12 @@ public class BugsController : ControllerBase
             bug.AssignedTo = _userService.GetById(bugDTO.AssignedToID);
         }
 
-        // Save
-        _context.Entry(bug).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
+        // Save (workflow transition already saved status)
+        if (currentStatus == newStatusString)
+        {
+            _context.Entry(bug).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+        }
 
         return NoContent();
     }
@@ -141,7 +173,7 @@ public class BugsController : ControllerBase
 
             Console.WriteLine($"Bug {id} exists, checking if Comments table exists...");
 
-            // Check if the Comments table exists
+            // Prüfen, ob die Comments-Tabelle existiert
             var commentsTableExists = _context.Model.FindEntityType(typeof(Comment)) != null;
 
             if (!commentsTableExists)
@@ -179,7 +211,7 @@ public class BugsController : ControllerBase
         {
             Console.WriteLine($"Error fetching comments for bug {id}: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            // Instead of 500 Error, we return an empty list
+            // Statt 500 Error, geben wir eine leere Liste zurück
             return Ok(new List<CommentDTO>());
         }
     }
@@ -228,5 +260,130 @@ public class BugsController : ControllerBase
         };
 
         return CreatedAtAction("GetComment", "Comments", new { id = comment.Id }, createdCommentDTO);
+    }
+
+    // WORKFLOW ENDPOINTS
+
+    // GET: api/Bugs/5/workflow - Get workflow info for a bug
+    [HttpGet("{id}/workflow")]
+    [Authorize]
+    public async Task<ActionResult<WorkflowInfoDTO>> GetBugWorkflowInfo(int id)
+    {
+        var bug = await _context.Bugs
+            .Include(b => b.CreatedBy)
+            .Include(b => b.AssignedTo)
+            .FirstOrDefaultAsync(b => b.Id == id);
+
+        if (bug == null)
+            return NotFound("Bug not found");
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "user";
+
+        var currentStatus = Enum.Parse<BugStatus>(bug.Status);
+        var allowedTransitions = _workflowService.GetAllowedTransitions(currentStatus);
+
+        // Filter transitions based on user permissions
+        var permittedTransitions = allowedTransitions
+            .Where(transition => _workflowService.IsTransitionAllowed(currentStatus, transition, userRole, bug, userId))
+            .Select(status => BugWorkflowService.GetStatusDisplayName(status))
+            .ToList();
+
+        var statusHistory = await _workflowService.GetStatusHistoryAsync(id);
+        var statusHistoryDTOs = statusHistory.Select(sh => new StatusTransitionHistoryDTO
+        {
+            Id = sh.Id,
+            FromStatus = BugWorkflowService.GetStatusDisplayName(sh.FromStatus),
+            ToStatus = BugWorkflowService.GetStatusDisplayName(sh.ToStatus),
+            Comment = sh.Comment,
+            TransitionDate = sh.TransitionDate,
+            ChangedBy = sh.ChangedBy != null ? new UserDTO
+            {
+                Id = sh.ChangedBy.Id,
+                Username = sh.ChangedBy.Username,
+                Role = sh.ChangedBy.Role
+            } : null
+        }).ToList();
+
+        var workflowInfo = new WorkflowInfoDTO
+        {
+            CurrentStatus = BugWorkflowService.GetStatusDisplayName(currentStatus),
+            AllowedTransitions = permittedTransitions,
+            StatusHistory = statusHistoryDTOs
+        };
+
+        return workflowInfo;
+    }
+
+    // POST: api/Bugs/5/transition - Transition bug status
+    [HttpPost("{id}/transition")]
+    [Authorize]
+    public async Task<IActionResult> TransitionBugStatus(int id, [FromBody] StatusTransitionDTO transitionDTO)
+    {
+        try
+        {
+            var bug = await _context.Bugs
+                .Include(b => b.CreatedBy)
+                .Include(b => b.AssignedTo)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
+            if (bug == null)
+                return NotFound("Bug not found");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "user";
+
+            // Parse new status
+            if (!Enum.TryParse<BugStatus>(transitionDTO.NewStatus, out var newStatus))
+            {
+                return BadRequest("Invalid status");
+            }
+
+            var currentStatus = Enum.Parse<BugStatus>(bug.Status);
+
+            // Check if transition is allowed
+            if (!_workflowService.IsTransitionAllowed(currentStatus, newStatus, userRole, bug, userId))
+            {
+                return Forbid("You are not authorized to perform this status transition");
+            }
+
+            // Perform the transition
+            await _workflowService.TransitionStatusAsync(bug, newStatus, userId, transitionDTO.Comment);
+
+            return Ok(new { message = "Status transition successful", newStatus = BugWorkflowService.GetStatusDisplayName(newStatus) });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during status transition: {ex.Message}");
+            return StatusCode(500, new { error = "Internal server error during status transition" });
+        }
+    }
+
+    // GET: api/Bugs/5/status-history - Get status history for a bug
+    [HttpGet("{id}/status-history")]
+    [Authorize]
+    public async Task<ActionResult<List<StatusTransitionHistoryDTO>>> GetBugStatusHistory(int id)
+    {
+        var bugExists = await _context.Bugs.AnyAsync(b => b.Id == id);
+        if (!bugExists)
+            return NotFound("Bug not found");
+
+        var statusHistory = await _workflowService.GetStatusHistoryAsync(id);
+        var statusHistoryDTOs = statusHistory.Select(sh => new StatusTransitionHistoryDTO
+        {
+            Id = sh.Id,
+            FromStatus = BugWorkflowService.GetStatusDisplayName(sh.FromStatus),
+            ToStatus = BugWorkflowService.GetStatusDisplayName(sh.ToStatus),
+            Comment = sh.Comment,
+            TransitionDate = sh.TransitionDate,
+            ChangedBy = sh.ChangedBy != null ? new UserDTO
+            {
+                Id = sh.ChangedBy.Id,
+                Username = sh.ChangedBy.Username,
+                Role = sh.ChangedBy.Role
+            } : null
+        }).ToList();
+
+        return statusHistoryDTOs;
     }
 }

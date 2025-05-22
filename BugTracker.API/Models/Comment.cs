@@ -9,11 +9,11 @@ namespace BugTracker.Api.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
-        // Foreign Key zu Bug
+        // Foreign Key to Bug
         public int BugId { get; set; }
         public Bug Bug { get; set; } = null!;
 
-        // Explicit Foreign Key für User
+        // Explicit Foreign Key for User
         public string? CreatedById { get; set; }
         public User? CreatedBy { get; set; } = null;
     }

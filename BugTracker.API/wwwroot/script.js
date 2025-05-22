@@ -63,13 +63,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 actionButtons += `<button onclick="deleteBug(event, ${bug.id})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">Delete</button>`;
             }
 
-            // Klick-Event nur für die Zeile (nicht für Buttons)
+            // click-event only for row not for buttons
             row.addEventListener("click", (e) => {
-                // Verhindere das Modal, wenn auf Button geklickt wurde
+                // Prevent the modal when the button is clicked
                 if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A') {
                     return;
                 }
-                // Statt Modal zu öffnen, zur Bug-Details-Seite navigieren
+                
                 window.location.href = `bug-details.html?id=${bug.id}`;
             });
             row.innerHTML = `

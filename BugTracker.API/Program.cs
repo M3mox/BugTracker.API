@@ -1,6 +1,6 @@
 ﻿using BugTracker.Api.Data;
 using BugTracker.API.Models;
-using BugTracker.Api.Models; // Hinzufügen für Comment
+using BugTracker.Api.Models; 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +10,7 @@ using BugTracker.API.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- JWT-Konfig auslesen ---
+// --- JWT-Config read out ---
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -18,7 +18,7 @@ var jwtAudience = builder.Configuration["Jwt:Audience"];
 if (string.IsNullOrEmpty(jwtKey))
     throw new InvalidOperationException("JWT Key is missing. Set it in environment variables or user secrets.");
 
-// --- Services konfigurieren ---
+// --- Configure services ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -34,7 +34,7 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<BugContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Identity hinzufügen
+// add Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<BugContext>()
     .AddDefaultTokenProviders();
@@ -67,7 +67,7 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
-// Password Hasher für unser User-Modell hinzufügen
+// add Password Hasher for user-model 
 builder.Services.AddTransient<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddTransient<UserService>();
 
@@ -88,28 +88,28 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseCors("AllowAll");
-app.UseAuthentication(); // <<< Wichtig: Vor Authorization
+app.UseAuthentication(); // <<< Important: befor Authorization
 app.UseAuthorization();
 
-// --- DB sicherstellen und Passwörter migrieren ---
+// --- Secure DB and migrate passwords ---
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BugContext>();
 
     try
     {
-        // NUR sicherstellen, dass die DB existiert (OHNE Löschen!)
+        // ONLY make sure that the DB exists (WITHOUT deleting!)
         Console.WriteLine("Ensuring database exists...");
         db.Database.EnsureCreated();
 
         Console.WriteLine("Database ensured successfully");
 
-        // Testen, ob die Comments-Tabelle existiert
+        // Test whether the Comments table exists
         var commentsExist = db.Database.CanConnect() &&
                            db.Model.FindEntityType(typeof(Comment)) != null;
         Console.WriteLine($"Comments table exists: {commentsExist}");
 
-        // Bestehende Benutzer zu gehashten Passwörtern migrieren 
+        // Migrate existing users to hashed passwords
         var userService = scope.ServiceProvider.GetRequiredService<UserService>();
         userService.MigrateUsersToHashedPasswords();
         Console.WriteLine("User password migration completed successfully");
@@ -119,7 +119,7 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine($"Error during database initialization: {ex.Message}");
         Console.WriteLine($"Stack trace: {ex.StackTrace}");
 
-        // Falls die Initialisierung fehlschlägt, versuchen wir es nochmal
+        // If the initialization fails, we try again
         try
         {
             Console.WriteLine("Trying fallback database creation...");

@@ -18,18 +18,18 @@ public class BugContext : IdentityDbContext<IdentityUser>
     {
         base.OnModelCreating(modelBuilder);
 
-        // Comment Konfiguration
+        // Comment Configuration
         modelBuilder.Entity<Comment>(entity =>
         {
             entity.HasKey(c => c.Id);
 
-            // Bug Beziehung
+            // Bug Relationships
             entity.HasOne(c => c.Bug)
                   .WithMany()
                   .HasForeignKey(c => c.BugId)
                   .OnDelete(DeleteBehavior.Cascade);
 
-            // User Beziehung (CreatedBy)
+            // User Relationships (CreatedBy)
             entity.HasOne(c => c.CreatedBy)
                   .WithMany()
                   .HasForeignKey(c => c.CreatedById)
@@ -37,19 +37,19 @@ public class BugContext : IdentityDbContext<IdentityUser>
                   .IsRequired(false);
         });
 
-        // Bug Konfiguration
+        // Bug Configuration
         modelBuilder.Entity<Bug>(entity =>
         {
             entity.HasKey(b => b.Id);
 
-            // CreatedBy Beziehung
+            // CreatedBy Relationships
             entity.HasOne(b => b.CreatedBy)
                   .WithMany()
                   .HasForeignKey("CreatedById")
                   .OnDelete(DeleteBehavior.NoAction)
                   .IsRequired(false);
 
-            // AssignedTo Beziehung  
+            // AssignedTo Relationships 
             entity.HasOne(b => b.AssignedTo)
                   .WithMany()
                   .HasForeignKey("AssignedToId")
@@ -57,7 +57,7 @@ public class BugContext : IdentityDbContext<IdentityUser>
                   .IsRequired(false);
         });
 
-        // User Konfiguration
+        // User Configuration
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(u => u.Id);

@@ -127,7 +127,7 @@
             displayComments(comments);
         } catch (error) {
             console.error("Error loading comments:", error);
-            // Display a more subtle error for comments since it might not be implemented yet
+        
             const commentsList = document.getElementById("comments-list");
             commentsList.innerHTML = '<p class="text-gray-500 italic">Unable to load comments.</p>';
         }

@@ -141,7 +141,7 @@ public class BugsController : ControllerBase
 
             Console.WriteLine($"Bug {id} exists, checking if Comments table exists...");
 
-            // Prüfen, ob die Comments-Tabelle existiert
+            // Check if the Comments table exists
             var commentsTableExists = _context.Model.FindEntityType(typeof(Comment)) != null;
 
             if (!commentsTableExists)
@@ -179,7 +179,7 @@ public class BugsController : ControllerBase
         {
             Console.WriteLine($"Error fetching comments for bug {id}: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            // Statt 500 Error, geben wir eine leere Liste zurück
+            // Instead of 500 Error, we return an empty list
             return Ok(new List<CommentDTO>());
         }
     }

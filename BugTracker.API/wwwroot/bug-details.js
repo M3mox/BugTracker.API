@@ -4,6 +4,18 @@
     let username = null;
     let currentBugId = null;
 
+    // Status mapping between enum values and display names
+    const statusDisplayNames = {
+        "Open": "Open",
+        "InProgress": "In Progress",
+        "Testing": "Testing",
+        "Completed": "Completed",
+        "Rejected": "Rejected",
+        "OnHold": "On Hold",
+        "Failed": "Failed",
+        "Reopened": "Reopened"
+    };
+
     // Get bug ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     const bugId = urlParams.get('id');
@@ -19,6 +31,8 @@
             const payload = JSON.parse(atob(token.split('.')[1]));
             userRole = payload["role"];
             username = payload["unique_name"];
+
+            console.log("User info:", { userRole, username }); // Debug
 
             if (userRole === "admin") {
                 document.body.classList.add("admin-mode");
@@ -58,6 +72,8 @@
             const bug = await response.json();
             currentBugId = bug.id;
 
+            console.log("Bug details loaded:", bug); // Debug
+
             // Update UI with bug details
             document.getElementById("bug-title").textContent = bug.title;
             document.getElementById("bug-status").textContent = bug.status;
@@ -94,6 +110,7 @@
             }
 
             const workflowInfo = await response.json();
+            console.log("Workflow info loaded:", workflowInfo); // Debug
             displayWorkflowInfo(workflowInfo);
         } catch (error) {
             console.error("Error loading workflow info:", error);
@@ -116,10 +133,12 @@
 
         let statusTransitionsHTML = "";
         if (workflowInfo.allowedTransitions && workflowInfo.allowedTransitions.length > 0) {
-            statusTransitionsHTML = workflowInfo.allowedTransitions.map(transition =>
-                `<button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mr-2 mb-2" 
-                         onclick="transitionStatus('${transition}')">${transition}</button>`
-            ).join("");
+            statusTransitionsHTML = workflowInfo.allowedTransitions.map(transition => {
+                const displayName = statusDisplayNames[transition] || transition;
+                console.log(`Mapping: "${transition}" -> "${displayName}"`); // Debug
+                return `<button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mr-2 mb-2" 
+                         onclick="transitionStatus('${transition}', '${displayName}')">${displayName}</button>`;
+            }).join("");
         } else {
             statusTransitionsHTML = '<p class="text-gray-500 italic">No status transitions available</p>';
         }
@@ -180,6 +199,12 @@
         // Only admin can delete bugs
         const canDelete = userRole === "admin";
 
+        console.log("Action permissions:", { canEdit, canDelete, userRole, username }); // Debug
+        console.log("Bug ownership:", {
+            createdBy: bug.createdBy?.username,
+            assignedTo: bug.assignedTo?.username
+        }); // Debug
+
         if (canEdit) {
             const editButton = document.createElement("a");
             editButton.href = `create-ticket.html?id=${bug.id}`;
@@ -205,9 +230,11 @@
     }
 
     // Global function for status transitions
-    window.transitionStatus = async function (newStatus) {
+    window.transitionStatus = async function (enumValue, displayName) {
+        console.log("Transitioning status:", { enumValue, displayName }); // Debug
+
         const { value: comment } = await Swal.fire({
-            title: `Transition to ${newStatus}`,
+            title: `Transition to ${displayName}`,
             input: 'textarea',
             inputLabel: 'Comment (optional)',
             inputPlaceholder: 'Add a comment about this status change...',
@@ -218,6 +245,12 @@
 
         if (comment !== undefined) { // User clicked confirm (even with empty comment)
             try {
+                console.log("Sending transition request:", {
+                    bugId: currentBugId,
+                    newStatus: enumValue,
+                    comment: comment || null
+                }); // Debug
+
                 const response = await fetch(`https://localhost:7063/api/Bugs/${currentBugId}/transition`, {
                     method: "POST",
                     headers: {
@@ -225,17 +258,20 @@
                         "Authorization": `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        newStatus: newStatus,
+                        newStatus: enumValue, // Send enum value directly
                         comment: comment || null
                     })
                 });
 
                 if (!response.ok) {
                     const errorData = await response.text();
+                    console.error("Transition failed:", errorData); // Debug
+                    console.error("Response status:", response.status); // Debug
                     throw new Error(`HTTP error! Status: ${response.status} - ${errorData}`);
                 }
 
                 const result = await response.json();
+                console.log("Transition successful:", result); // Debug
 
                 Swal.fire({
                     title: "Status Updated!",

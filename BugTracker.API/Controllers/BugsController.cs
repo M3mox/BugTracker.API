@@ -70,6 +70,7 @@ public class BugsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> UpdateBug(int id, CreateBugDTO bugDTO)
     {
+        // Bug mit allen notwendigen Navigation Properties laden
         var bug = await _context.Bugs
             .Include(b => b.CreatedBy)
             .Include(b => b.AssignedTo)
@@ -105,6 +106,13 @@ public class BugsController : ControllerBase
                 return BadRequest("Invalid status value");
             }
 
+            // Detach und neu laden für korrekte Shadow Properties
+            _context.Entry(bug).State = EntityState.Detached;
+            bug = await _context.Bugs
+                .Include(b => b.CreatedBy)
+                .Include(b => b.AssignedTo)
+                .FirstOrDefaultAsync(b => b.Id == id);
+
             // Check if status transition is allowed
             if (!_workflowService.IsTransitionAllowed(currentStatusEnum, newStatusEnum, userRole, bug, userId))
             {
@@ -118,6 +126,7 @@ public class BugsController : ControllerBase
         // Update other fields
         bug.Title = bugDTO.Title;
         bug.Description = bugDTO.Description;
+
         // Status is already updated through workflow if changed
         if (currentStatus == newStatusString)
         {
@@ -286,7 +295,7 @@ public class BugsController : ControllerBase
         // Filter transitions based on user permissions
         var permittedTransitions = allowedTransitions
             .Where(transition => _workflowService.IsTransitionAllowed(currentStatus, transition, userRole, bug, userId))
-            .Select(status => BugWorkflowService.GetStatusDisplayName(status))
+            .Select(status => status.ToString()) // Use enum string directly instead of display name
             .ToList();
 
         var statusHistory = await _workflowService.GetStatusHistoryAsync(id);
@@ -322,39 +331,64 @@ public class BugsController : ControllerBase
     {
         try
         {
+            Console.WriteLine($"=== CONTROLLER TRANSITION DEBUG ===");
+            Console.WriteLine($"Bug ID: {id}");
+            Console.WriteLine($"Requested Status: {transitionDTO.NewStatus}");
+            Console.WriteLine($"Comment: {transitionDTO.Comment}");
+
+            // Bug mit allen Navigation Properties laden
             var bug = await _context.Bugs
                 .Include(b => b.CreatedBy)
                 .Include(b => b.AssignedTo)
                 .FirstOrDefaultAsync(b => b.Id == id);
 
             if (bug == null)
+            {
+                Console.WriteLine("❌ Bug not found");
                 return NotFound("Bug not found");
+            }
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userRole = User.FindFirstValue(ClaimTypes.Role) ?? "user";
 
+            Console.WriteLine($"Current User ID: {userId}");
+            Console.WriteLine($"Current User Role: {userRole}");
+            Console.WriteLine($"Bug Current Status: {bug.Status}");
+            Console.WriteLine($"Bug Created By: {bug.CreatedBy?.Id ?? "null"} ({bug.CreatedBy?.Username ?? "null"})");
+            Console.WriteLine($"Bug Assigned To: {bug.AssignedTo?.Id ?? "null"} ({bug.AssignedTo?.Username ?? "null"})");
+
             // Parse new status
             if (!Enum.TryParse<BugStatus>(transitionDTO.NewStatus, out var newStatus))
             {
+                Console.WriteLine($"❌ Invalid status: {transitionDTO.NewStatus}");
                 return BadRequest("Invalid status");
             }
 
             var currentStatus = Enum.Parse<BugStatus>(bug.Status);
+            Console.WriteLine($"Parsed statuses - Current: {currentStatus}, New: {newStatus}");
 
             // Check if transition is allowed
-            if (!_workflowService.IsTransitionAllowed(currentStatus, newStatus, userRole, bug, userId))
+            var isAllowed = _workflowService.IsTransitionAllowed(currentStatus, newStatus, userRole, bug, userId);
+            Console.WriteLine($"Transition allowed: {isAllowed}");
+
+            if (!isAllowed)
             {
+                Console.WriteLine("❌ Transition not allowed - returning Forbid");
                 return Forbid("You are not authorized to perform this status transition");
             }
 
             // Perform the transition
+            Console.WriteLine("✅ Performing transition...");
             await _workflowService.TransitionStatusAsync(bug, newStatus, userId, transitionDTO.Comment);
 
+            Console.WriteLine("✅ Transition completed successfully");
+            Console.WriteLine("=== END CONTROLLER TRANSITION DEBUG ===");
             return Ok(new { message = "Status transition successful", newStatus = BugWorkflowService.GetStatusDisplayName(newStatus) });
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error during status transition: {ex.Message}");
+            Console.WriteLine($"❌ Error during status transition: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             return StatusCode(500, new { error = "Internal server error during status transition" });
         }
     }

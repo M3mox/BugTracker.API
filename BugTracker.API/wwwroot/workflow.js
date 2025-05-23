@@ -3,53 +3,108 @@
     let userRole = null;
     let username = null;
 
-    // Authentication check
+    // Status display names mapping
+    const statusDisplayNames = {
+        "Open": "Open",
+        "InProgress": "In Progress",
+        "Testing": "Testing",
+        "Completed": "Completed",
+        "Rejected": "Rejected",
+        "OnHold": "On Hold",
+        "Failed": "Failed",
+        "Reopened": "Reopened"
+    };
+
+    // Status colors for visual representation
+    const statusColors = {
+        "Open": "bg-blue-100 text-blue-800 border-blue-200",
+        "InProgress": "bg-yellow-100 text-yellow-800 border-yellow-200",
+        "Testing": "bg-purple-100 text-purple-800 border-purple-200",
+        "Completed": "bg-green-100 text-green-800 border-green-200",
+        "Rejected": "bg-red-100 text-red-800 border-red-200",
+        "OnHold": "bg-gray-100 text-gray-800 border-gray-200",
+        "Failed": "bg-orange-100 text-orange-800 border-orange-200",
+        "Reopened": "bg-indigo-100 text-indigo-800 border-indigo-200"
+    };
+
+    // Workflow transitions definition
+    const workflowTransitions = {
+        "Open": ["InProgress", "Rejected"],
+        "InProgress": ["Testing", "OnHold", "Open"],
+        "Testing": ["Completed", "Failed"],
+        "Completed": ["Reopened"],
+        "Rejected": ["Reopened"],
+        "OnHold": ["InProgress", "Rejected"],
+        "Failed": ["InProgress"],
+        "Reopened": ["InProgress", "Rejected"]
+    };
+
+    // Check authentication and get user role
     if (token) {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             userRole = payload["role"];
             username = payload["unique_name"];
 
+            console.log("User info:", { userRole, username }); // Debug
+
             if (userRole === "admin") {
                 document.body.classList.add("admin-mode");
                 document.getElementById("admin-badge").classList.remove("hidden");
                 document.getElementById("workflow-stats").classList.remove("hidden");
+                loadWorkflowStatistics();
             }
         } catch (err) {
             console.error("Token decoding failed:", err);
             redirectToLogin("Invalid token. Please log in again.");
+            return;
         }
     } else {
         redirectToLogin("Not logged in. Please try again.");
+        return;
     }
 
-    // Initialize workflow page
-    loadWorkflowDiagram();
+    // Initialize the workflow page
+    initializeWorkflowDiagram();
     loadStatusOverview();
-    if (userRole === "admin") {
-        loadWorkflowStatistics();
-    }
 
-    async function loadWorkflowDiagram() {
-        try {
-            const response = await fetch("https://localhost:7063/api/Workflow/diagram", {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
+    function initializeWorkflowDiagram() {
+        const diagramContainer = document.getElementById("workflow-diagram");
+        const gridContainer = diagramContainer.querySelector(".grid");
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
+        // Clear existing content
+        gridContainer.innerHTML = "";
 
-            const workflow = await response.json();
-            displayWorkflowDiagram(workflow);
-        } catch (error) {
-            console.error("Error loading workflow diagram:", error);
-        }
+        // Create workflow diagram
+        Object.keys(workflowTransitions).forEach(status => {
+            const statusCard = document.createElement("div");
+            statusCard.className = `p-4 rounded border-2 ${statusColors[status]} transition-all hover:shadow-md`;
+
+            const displayName = statusDisplayNames[status] || status;
+            const transitions = workflowTransitions[status];
+
+            statusCard.innerHTML = `
+                <div class="font-semibold text-lg mb-2">${displayName}</div>
+                <div class="text-sm mb-3">
+                    <strong>Can transition to:</strong>
+                </div>
+                <div class="space-y-1">
+                    ${transitions.map(targetStatus => {
+                const targetDisplayName = statusDisplayNames[targetStatus] || targetStatus;
+                return `<div class="text-xs px-2 py-1 bg-white bg-opacity-50 rounded">
+                            → ${targetDisplayName}
+                        </div>`;
+            }).join('')}
+                </div>
+            `;
+
+            gridContainer.appendChild(statusCard);
+        });
     }
 
     async function loadStatusOverview() {
         try {
-            const response = await fetch("https://localhost:7063/api/Workflow/statuses", {
+            const response = await fetch("https://localhost:7063/api/Bugs", {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
@@ -57,65 +112,56 @@
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            const statuses = await response.json();
-            displayStatusOverview(statuses);
-        } catch (error) {
-            console.error("Error loading status overview:", error);
-        }
-    }
+            const bugs = await response.json();
+            console.log("Bugs loaded for status overview:", bugs); // Debug
 
-    async function loadWorkflowStatistics() {
-        try {
-            const response = await fetch("https://localhost:7063/api/Workflow/statistics", {
-                headers: { "Authorization": `Bearer ${token}` }
+            displayStatusOverview(bugs);
+        } catch (error) {
+            console.error("Error loading bugs for status overview:", error);
+            Swal.fire({
+                title: "Error",
+                text: "Failed to load status overview. Please try again.",
+                icon: "error"
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const stats = await response.json();
-            displayWorkflowStatistics(stats);
-        } catch (error) {
-            console.error("Error loading workflow statistics:", error);
         }
     }
 
-    function displayWorkflowDiagram(workflow) {
-        const diagramContainer = document.querySelector("#workflow-diagram .grid");
-        diagramContainer.innerHTML = "";
-
-        workflow.nodes.forEach(node => {
-            const nodeDiv = document.createElement("div");
-            nodeDiv.className = "bg-white p-4 rounded border-2 text-center shadow-sm";
-            nodeDiv.style.borderColor = node.color;
-
-            nodeDiv.innerHTML = `
-                <div class="w-4 h-4 rounded-full mx-auto mb-2" style="background-color: ${node.color}"></div>
-                <h3 class="font-semibold text-sm">${node.label}</h3>
-                <p class="text-xs text-gray-600 mt-1">${node.description}</p>
-            `;
-
-            diagramContainer.appendChild(nodeDiv);
-        });
-    }
-
-    function displayStatusOverview(statuses) {
+    function displayStatusOverview(bugs) {
         const overviewContainer = document.getElementById("status-overview");
         overviewContainer.innerHTML = "";
 
-        statuses.forEach(status => {
+        // Count bugs by status
+        const statusCounts = {};
+        Object.keys(statusDisplayNames).forEach(status => {
+            statusCounts[status] = 0;
+        });
+
+        bugs.forEach(bug => {
+            const status = bug.status;
+            if (statusCounts.hasOwnProperty(status)) {
+                statusCounts[status]++;
+            } else {
+                console.warn(`Unknown status found: ${status}`);
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            }
+        });
+
+        console.log("Status counts:", statusCounts); // Debug
+
+        // Create status cards
+        Object.entries(statusCounts).forEach(([status, count]) => {
+            const displayName = statusDisplayNames[status] || status;
+            const colorClass = statusColors[status] || "bg-gray-100 text-gray-800 border-gray-200";
+
             const statusCard = document.createElement("div");
-            statusCard.className = "bg-white p-4 rounded border border-gray-200 shadow-sm";
+            statusCard.className = `p-4 rounded border-2 ${colorClass} cursor-pointer transition-all hover:shadow-md`;
+            statusCard.addEventListener("click", () => filterBugsByStatus(status));
 
             statusCard.innerHTML = `
-                <h3 class="font-semibold text-lg">${status.displayName}</h3>
-                <p class="text-sm text-gray-600 mt-2">${status.description}</p>
-                <div class="mt-3">
-                    <button class="text-blue-600 hover:text-blue-800 text-sm" 
-                            onclick="showTransitions('${status.value}')">
-                        View Transitions →
-                    </button>
+                <div class="font-semibold text-lg">${displayName}</div>
+                <div class="text-2xl font-bold mt-2">${count}</div>
+                <div class="text-sm mt-1 opacity-75">
+                    ${count === 1 ? 'bug' : 'bugs'}
                 </div>
             `;
 
@@ -123,16 +169,9 @@
         });
     }
 
-    function displayWorkflowStatistics(stats) {
-        document.getElementById("total-bugs").textContent = stats.totalBugs || "0";
-        document.getElementById("completed-month").textContent = stats.statusDistribution?.Completed || "0";
-        document.getElementById("in-progress").textContent = stats.statusDistribution?.["In Progress"] || "0";
-    }
-
-    // Global function for showing transitions
-    window.showTransitions = async function (fromStatus) {
+    async function loadWorkflowStatistics() {
         try {
-            const response = await fetch(`https://localhost:7063/api/Workflow/transitions/${fromStatus}`, {
+            const response = await fetch("https://localhost:7063/api/Bugs", {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
@@ -140,27 +179,83 @@
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            const transitions = await response.json();
+            const bugs = await response.json();
+            console.log("Bugs loaded for statistics:", bugs); // Debug
 
-            const transitionsText = transitions.length > 0
-                ? transitions.join(", ")
-                : "No transitions available";
-
-            Swal.fire({
-                title: `Transitions from ${fromStatus}`,
-                html: `<p class="text-gray-700">Available transitions:</p><p class="font-semibold text-blue-600">${transitionsText}</p>`,
-                icon: "info",
-                confirmButtonText: "OK"
-            });
+            displayWorkflowStatistics(bugs);
         } catch (error) {
-            console.error("Error loading transitions:", error);
-            Swal.fire({
-                title: "Error",
-                text: "Failed to load transitions",
-                icon: "error"
-            });
+            console.error("Error loading workflow statistics:", error);
+            document.getElementById("total-bugs").textContent = "Error";
+            document.getElementById("completed-month").textContent = "Error";
+            document.getElementById("in-progress").textContent = "Error";
         }
-    };
+    }
+
+    function displayWorkflowStatistics(bugs) {
+        const totalBugs = bugs.length;
+
+        // Count completed bugs this month
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        const completedThisMonth = bugs.filter(bug => {
+            if (bug.status !== "Completed") return false;
+
+            const updatedDate = new Date(bug.updatedAt || bug.createdAt);
+            return updatedDate.getMonth() === currentMonth &&
+                updatedDate.getFullYear() === currentYear;
+        }).length;
+
+        // Count in-progress bugs
+        const inProgressBugs = bugs.filter(bug => bug.status === "InProgress").length;
+
+        // Update UI
+        document.getElementById("total-bugs").textContent = totalBugs;
+        document.getElementById("completed-month").textContent = completedThisMonth;
+        document.getElementById("in-progress").textContent = inProgressBugs;
+
+        console.log("Statistics:", { totalBugs, completedThisMonth, inProgressBugs }); // Debug
+    }
+
+    function filterBugsByStatus(status) {
+        // Navigate to dashboard with status filter
+        const displayName = statusDisplayNames[status] || status;
+        Swal.fire({
+            title: "Filter by Status",
+            text: `Show all bugs with status: ${displayName}`,
+            icon: "info",
+            showCancelButton: true,
+            confirmButtonText: "Go to Dashboard",
+            cancelButtonText: "Cancel"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // You can implement status filtering on the dashboard
+                // For now, just redirect to dashboard
+                window.location.href = `index.html?status=${encodeURIComponent(status)}`;
+            }
+        });
+    }
+
+    // Role-based permission checker
+    function canUserTransition(fromStatus, toStatus) {
+        // This is a simplified version - in a real app, this would check against the backend
+        const rolePermissions = {
+            "admin": true, // Admin can do everything
+            "user": {
+                // Users can generally transition their own bugs
+                "Open": ["InProgress"],
+                "InProgress": ["Testing", "OnHold", "Open"],
+                "Testing": [], // Only admin can complete testing
+                "OnHold": ["InProgress"],
+                "Failed": ["InProgress"],
+                "Reopened": ["InProgress"]
+            }
+        };
+
+        if (userRole === "admin") return true;
+
+        const userTransitions = rolePermissions.user[fromStatus] || [];
+        return userTransitions.includes(toStatus);
+    }
 
     function redirectToLogin(message) {
         Swal.fire({
@@ -175,4 +270,33 @@
             window.location.href = "login.html";
         }, 1800);
     }
+
+    // Add some interactive features
+    document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+            window.location.href = "index.html";
+        }
+    });
+
+    // Add refresh functionality
+    const refreshButton = document.createElement("button");
+    refreshButton.className = "fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all";
+    refreshButton.innerHTML = "🔄";
+    refreshButton.title = "Refresh Data";
+    refreshButton.addEventListener("click", () => {
+        loadStatusOverview();
+        if (userRole === "admin") {
+            loadWorkflowStatistics();
+        }
+
+        Swal.fire({
+            title: "Refreshed!",
+            text: "Workflow data has been updated.",
+            icon: "success",
+            timer: 1000,
+            showConfirmButton: false
+        });
+    });
+
+    document.body.appendChild(refreshButton);
 });

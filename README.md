@@ -219,7 +219,7 @@ If you encounter any issues or have questions, please:
 2. Create a new issue with detailed information
 3. Include steps to reproduce any bugs
 
-## Roadmap
+## Roadmap (Features to come)
 
 - [ ] Email notifications for status changes
 - [ ] File attachments for bugs
@@ -230,4 +230,4 @@ If you encounter any issues or have questions, please:
 
 ---
 
-**Made with ❤️ using ASP.NET Core and vanilla JavaScript**
+**Made with ❤️ using ASP.NET Core and vanilla JavaScript by Miriam Huber**

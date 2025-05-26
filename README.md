@@ -1,181 +1,233 @@
-🐞 Bug Tracker
+# Bug Tracker 🐞
 
-A modern, lightweight bug tracking application built with HTML, JavaScript, and a .NET API backend.
-Bild anzeigen
+A comprehensive web-based bug tracking system built with ASP.NET Core Web API and vanilla JavaScript. This application provides a complete workflow management system for tracking and managing software bugs with role-based access control.
 
-📋 Features
+## Features
 
-User Authentication: Secure login and registration system
-Ticket Management: Create, view, update, and delete bug tickets
-User Assignment: Assign tickets to specific users
-Role-Based Access Control: Admin and regular user roles with different permissions
-Responsive Design: Works on desktop and mobile devices
+### Core Functionality
+- **Bug Management**: Create, edit, update, and delete bug reports
+- **User Authentication**: Secure JWT-based login and registration system
+- **Role-Based Access Control**: Admin and User roles with different permissions
+- **Workflow Management**: Status-based bug lifecycle with controlled transitions
+- **Comments System**: Add comments and discussions to bug reports
+- **Assignment System**: Assign bugs to specific users
 
-🔧 Technologies Used
+### Workflow States
+- **Open**: Newly reported bugs
+- **In Progress**: Bugs currently being worked on
+- **Testing**: Bugs under testing phase
+- **Completed**: Successfully resolved bugs
+- **Rejected**: Invalid or duplicate bug reports
+- **On Hold**: Temporarily paused bugs
+- **Failed**: Bugs that failed testing
+- **Reopened**: Previously completed bugs that need attention
 
-Frontend:
+### User Interface
+- **Dashboard**: Overview of all bugs with filtering and search capabilities
+- **Status Overview**: Visual representation of bug distribution across statuses
+- **Quick Actions**: Fast status transitions directly from the dashboard
+- **Responsive Design**: Mobile-friendly interface using Tailwind CSS
 
-HTML5
-CSS3 with Tailwind CSS
-JavaScript (ES6+)
-SweetAlert2 for notifications
+## Technology Stack
 
+### Backend
+- **ASP.NET Core 6.0** - Web API framework
+- **Entity Framework Core** - ORM for database operations
+- **SQL Server** - Primary database
+- **JWT Authentication** - Secure token-based authentication
+- **Identity Framework** - User management and password hashing
 
-Backend:
+### Frontend
+- **Vanilla JavaScript** - No framework dependencies
+- **Tailwind CSS** - Utility-first CSS framework
+- **SweetAlert2** - Beautiful alert dialogs
+- **HTML5** - Semantic markup
 
-ASP.NET Core Web API (.NET 6)
-JWT Authentication
-Entity Framework Core
+## Prerequisites
 
+- .NET 6.0 SDK or later
+- SQL Server (LocalDB, Express, or Full)
+- Visual Studio 2022 or VS Code
+- Modern web browser
 
+## Installation & Setup
 
-🚀 Getting Started
-Prerequisites
-
-.NET 6 SDK or later
-Web browser (Chrome, Firefox, Edge, etc.)
-A local development environment or web server
-
-Installation
-
-Clone the repository
-
-bashgit clone https://github.com/yourusername/bug-tracker.git
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/bug-tracker.git
 cd bug-tracker
+```
 
-Start the backend API and frontend
+### 2. Configure Database Connection
+Update the connection string in `appsettings.json`:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=BugTrackerDb;Trusted_Connection=true;"
+  }
+}
+```
 
-bashdotnet restore
+### 3. Configure JWT Settings
+Set up JWT configuration in `appsettings.json` or user secrets:
+```json
+{
+  "Jwt": {
+    "Key": "your-super-secret-jwt-key-here-minimum-32-characters",
+    "Issuer": "BugTracker",
+    "Audience": "BugTracker"
+  }
+}
+```
+
+### 4. Restore Dependencies
+```bash
+dotnet restore
+```
+
+### 5. Run Database Migrations
+The application uses `EnsureCreated()` to automatically create the database on first run.
+
+### 6. Start the Application
+```bash
 dotnet run
-The application will start and be available at https://localhost:7063.
-You can access the frontend by navigating to this URL in your browser.
-🔍 Usage
-Login / Registration
+```
 
-Open login.html in your browser
-Login with your credentials or click "Need an account? Register" to create a new account
-New users will be assigned the "user" role by default
+The API will be available at `https://localhost:7063` and the web interface at the same URL.
 
-Creating Tickets
+## Usage
 
-After logging in, you'll be redirected to the dashboard
-Fill out the ticket creation form with title, description, and status
-Optionally assign the ticket to a user
-Click "Create Ticket" to submit
+### Getting Started
+1. **Register a new account** at `/register.html`
+2. **Login** with your credentials at `/login.html`
+3. **Create your first bug** using the "Create Ticket" button
+4. **Manage workflows** through the Workflow page
 
-Managing Tickets
+### User Roles
 
-View Details: Click on any ticket row to view full details
-Edit: If you're an admin or the ticket creator, you can edit tickets using the "Edit" button
-Delete: Admins can delete tickets using the "Delete" button
+#### Regular User
+- Create and edit own bugs
+- Comment on bugs
+- Transition bug statuses (limited permissions)
+- View assigned bugs
 
-👥 User Roles
+#### Admin User
+- All user permissions
+- Delete any bug
+- Perform any status transition
+- Access workflow statistics
+- Manage all bugs regardless of assignment
 
-User: Can create and manage their own tickets, assign tickets to other users
-Admin: Additional permissions to edit/delete any ticket, indicated by an "Admin" badge
+### API Endpoints
 
-📁 Project Structure
+#### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/change-password` - Change password
 
-/
+#### Bug Management
+- `GET /api/bugs` - Get all bugs
+- `GET /api/bugs/{id}` - Get specific bug
+- `POST /api/bugs` - Create new bug
+- `PUT /api/bugs/{id}` - Update bug
+- `DELETE /api/bugs/{id}` - Delete bug (Admin only)
 
-├── Program.cs              # Main application entry point
+#### Workflow
+- `GET /api/workflow/statuses` - Get all available statuses
+- `GET /api/workflow/transitions/{status}` - Get allowed transitions
+- `POST /api/bugs/{id}/transition` - Transition bug status
 
-│
-├── Controllers/            # API Controllers
+#### Comments
+- `GET /api/bugs/{id}/comments` - Get bug comments
+- `POST /api/bugs/{id}/comments` - Add comment
+- `DELETE /api/comments/{id}` - Delete comment
 
-│   ├── AuthController.cs   # Authentication endpoints
+## Project Structure
 
-│   ├── BugController.cs    # Bug ticket endpoints
+```
+BugTracker/
+├── Controllers/
+│   ├── AuthController.cs       # Authentication endpoints
+│   ├── BugsController.cs       # Bug management endpoints
+│   ├── CommentsController.cs   # Comment management
+│   ├── UsersController.cs      # User management
+│   └── WorkflowController.cs   # Workflow management
+├── Models/
+│   ├── Bug.cs                  # Bug entity
+│   ├── Comment.cs              # Comment entity
+│   ├── User.cs                 # User entity
+│   ├── BugStatus.cs            # Status enumeration
+│   └── StatusTransition.cs     # Status transition history
+├── Services/
+│   ├── UserService.cs          # User business logic
+│   └── BugWorkflowService.cs   # Workflow management logic
+├── DTO/
+│   ├── CreateBugDTO.cs         # Bug creation data transfer
+│   ├── CommentDTO.cs           # Comment data transfer
+│   └── WorkflowInfoDTO.cs      # Workflow information
+├── Data/
+│   └── BugContext.cs           # Entity Framework context
+└── wwwroot/                    # Static web files
+    ├── index.html              # Main dashboard
+    ├── login.html              # Login page
+    ├── register.html           # Registration page
+    ├── create-ticket.html      # Bug creation/editing
+    ├── workflow.html           # Workflow management
+    ├── bug-details.html        # Detailed bug view
+    └── *.js                    # JavaScript files
+```
 
-│   └── UsersController.cs  # User management endpoints
+## Security Features
 
-│
+- **JWT Token Authentication**: Secure stateless authentication
+- **Password Hashing**: BCrypt-based password security
+- **Role-Based Authorization**: Granular permission control
+- **CORS Configuration**: Controlled cross-origin requests
+- **Input Validation**: Server-side validation for all inputs
 
-├── Models/                 # Data models
+## Development
 
-│   ├── Bug.cs              # Bug ticket model
+### Running in Development
+```bash
+dotnet run --environment Development
+```
 
-│   └── User.cs             # User model
+### Building for Production
+```bash
+dotnet publish -c Release -o ./publish
+```
 
-│
+### Database Migrations
+The application automatically creates and updates the database schema on startup using Entity Framework's `EnsureCreated()` method.
 
-├── DTO/                    # Data Transfer Objects
+## Contributing
 
-│   ├── BugDTO.cs           # Bug DTO
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-│   └── UserDTO.cs          # User DTO
+## License
 
-│
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-├── Data/                   # Database context
+## Support
 
-│   └── BugContext.cs       # EF Core DB context
+If you encounter any issues or have questions, please:
+1. Check the existing issues on GitHub
+2. Create a new issue with detailed information
+3. Include steps to reproduce any bugs
 
-│
+## Roadmap
 
-├── Service/               # Business logic services
+- [ ] Email notifications for status changes
+- [ ] File attachments for bugs
+- [ ] Advanced reporting and analytics
+- [ ] Integration with external tools (Slack, Teams)
+- [ ] Mobile app development
+- [ ] Advanced workflow customization
 
-│   └── UserService.cs      # User management service
+---
 
-│
-
-├──  wwwroot/                # Static web files (frontend)
-
-│   └── index.html          # Main dashboard
-
-│   └── login.html          # Login page
-
-│   └── register.html       # Registration page
-
-│   ├── script.js           # Main dashboard script
-
-│   ├── login.js            # Login page script
-
-│   ├── register.js         # Registration page script
-
-│
-
-├── css/                # Stylesheet folder
-
-│   └── style.css       # CSS styles
-
-│
-
-└── favicon files       # Various favicon formats
-    
-    
-🔐 Authentication Flow
-
-User registers or logs in through the web interface
-The API validates credentials and returns a JWT token
-The token is stored in the browser's localStorage
-All subsequent API requests include this token
-The application decodes the token to determine user roles and permissions
-
-⚠️ Known Issues and Limitations
-
-Session expires after token timeout (currently set to 24 hours)
-Limited filtering and searching capabilities for tickets
-No email notifications for ticket assignments
-
-🛠️ Future Improvements
-
- Implement advanced search and filtering
- Add comment functionality to tickets
- Email notifications for ticket updates
- Dark mode support
- Export tickets to CSV/PDF
-
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-Fork the repository
-Create your feature branch (git checkout -b feature/amazing-feature)
-Commit your changes (git commit -m 'Add some amazing feature')
-Push to the branch (git push origin feature/amazing-feature)
-Open a Pull Request
-
-
-Created by Miriam Huber
+**Made with ❤️ using ASP.NET Core and vanilla JavaScript**

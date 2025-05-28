@@ -43,6 +43,16 @@ A comprehensive web-based bug tracking system built with ASP.NET Core Web API an
 - **SweetAlert2** - Beautiful alert dialogs
 - **HTML5** - Semantic markup
 
+
+## Security Features
+
+- **JWT Token Authentication**: Secure stateless authentication
+- **Password Hashing**: BCrypt-based password security
+- **Role-Based Authorization**: Granular permission control
+- **CORS Configuration**: Controlled cross-origin requests
+- **Input Validation**: Server-side validation for all inputs
+
+
 ## Prerequisites
 
 - .NET 6.0 SDK or later
@@ -118,72 +128,6 @@ The API will be available at `https://localhost:7063` and the web interface at t
 - Access workflow statistics
 - Manage all bugs regardless of assignment
 
-### API Endpoints
-
-#### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/change-password` - Change password
-
-#### Bug Management
-- `GET /api/bugs` - Get all bugs
-- `GET /api/bugs/{id}` - Get specific bug
-- `POST /api/bugs` - Create new bug
-- `PUT /api/bugs/{id}` - Update bug
-- `DELETE /api/bugs/{id}` - Delete bug (Admin only)
-
-#### Workflow
-- `GET /api/workflow/statuses` - Get all available statuses
-- `GET /api/workflow/transitions/{status}` - Get allowed transitions
-- `POST /api/bugs/{id}/transition` - Transition bug status
-
-#### Comments
-- `GET /api/bugs/{id}/comments` - Get bug comments
-- `POST /api/bugs/{id}/comments` - Add comment
-- `DELETE /api/comments/{id}` - Delete comment
-
-## Project Structure
-
-```
-BugTracker/
-├── Controllers/
-│   ├── AuthController.cs       # Authentication endpoints
-│   ├── BugsController.cs       # Bug management endpoints
-│   ├── CommentsController.cs   # Comment management
-│   ├── UsersController.cs      # User management
-│   └── WorkflowController.cs   # Workflow management
-├── Models/
-│   ├── Bug.cs                  # Bug entity
-│   ├── Comment.cs              # Comment entity
-│   ├── User.cs                 # User entity
-│   ├── BugStatus.cs            # Status enumeration
-│   └── StatusTransition.cs     # Status transition history
-├── Services/
-│   ├── UserService.cs          # User business logic
-│   └── BugWorkflowService.cs   # Workflow management logic
-├── DTO/
-│   ├── CreateBugDTO.cs         # Bug creation data transfer
-│   ├── CommentDTO.cs           # Comment data transfer
-│   └── WorkflowInfoDTO.cs      # Workflow information
-├── Data/
-│   └── BugContext.cs           # Entity Framework context
-└── wwwroot/                    # Static web files
-    ├── index.html              # Main dashboard
-    ├── login.html              # Login page
-    ├── register.html           # Registration page
-    ├── create-ticket.html      # Bug creation/editing
-    ├── workflow.html           # Workflow management
-    ├── bug-details.html        # Detailed bug view
-    └── *.js                    # JavaScript files
-```
-
-## Security Features
-
-- **JWT Token Authentication**: Secure stateless authentication
-- **Password Hashing**: BCrypt-based password security
-- **Role-Based Authorization**: Granular permission control
-- **CORS Configuration**: Controlled cross-origin requests
-- **Input Validation**: Server-side validation for all inputs
 
 ## Development
 
